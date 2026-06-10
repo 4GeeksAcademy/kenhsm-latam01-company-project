@@ -3,43 +3,14 @@ import { notFound } from "next/navigation";
 import CandidateEditForm from "./candidate-edit-form";
 import CandidateUpdateControls from "./candidate-update-controls";
 import CandidateNotesSection from "./candidate-notes-section";
-
-type CandidateRecordDetail = {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  position: string;
-  linkedin_url: string;
-  cv_url: string;
-  status: string;
-  stage: string;
-  experience_years: number;
-  notes_count: number;
-  applied_at: string;
-  updated_at: string;
-};
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
+import { fetchCandidateById } from "@/services/records";
+import { CandidateRecordDetail } from "@/types/records";
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-async function fetchCandidateById(id: string): Promise<CandidateRecordDetail> {
-  const response = await fetch(`${API_URL}/records/${id}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch candidate detail: ${response.status}`);
-  }
-
-  return (await response.json()) as CandidateRecordDetail;
 }
 
 async function getCandidate(
@@ -89,7 +60,10 @@ export default async function CandidateDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10 md:px-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Detalle de candidatura</h1>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">Brasaland People Ops</p>
+          <h1 className="text-3xl font-bold tracking-tight">Detalle de candidatura</h1>
+        </div>
         <Link
           href="/"
           className="inline-flex items-center rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"

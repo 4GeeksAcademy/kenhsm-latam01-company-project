@@ -2,20 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { patchCandidate } from "@/services/records";
 
 type CandidateUpdateControlsProps = {
   recordId: string;
   initialStatus: string;
   initialStage: string;
 };
-
-type PatchResponse = {
-  status: string;
-  stage: string;
-};
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
 
 const DEFAULT_STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
 const DEFAULT_STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
@@ -42,29 +35,13 @@ export default function CandidateUpdateControls({
     return Array.from(options);
   }, [initialStage, stage]);
 
-  async function patchRecord(payload: { status?: string; stage?: string }): Promise<PatchResponse> {
-    const response = await fetch(`${API_URL}/records/${recordId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Patch failed: ${response.status}`);
-    }
-
-    return (await response.json()) as PatchResponse;
-  }
-
   async function handleUpdateStatus(nextStatus: string) {
     setStatus(nextStatus);
     setIsSavingStatus(true);
     setFeedback(null);
 
     try {
-      const updated = await patchRecord({ status: nextStatus });
+      const updated = await patchCandidate(recordId, { status: nextStatus });
       setStatus(updated.status);
       setStage(updated.stage);
       setFeedback({ type: "success", message: "Estado actualizado correctamente." });
@@ -82,7 +59,7 @@ export default function CandidateUpdateControls({
     setFeedback(null);
 
     try {
-      const updated = await patchRecord({ stage: nextStage });
+      const updated = await patchCandidate(recordId, { stage: nextStage });
       setStatus(updated.status);
       setStage(updated.stage);
       setFeedback({ type: "success", message: "Etapa actualizada correctamente." });

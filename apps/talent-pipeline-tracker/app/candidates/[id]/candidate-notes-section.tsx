@@ -1,27 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-
-type CandidateNote = {
-  id: string;
-  record_id: string;
-  content: string;
-  created_at: string;
-};
-
-type NotesResponse = {
-  data: CandidateNote[];
-  meta?: {
-    total?: number;
-  };
-};
+import { createRecordNote, deleteRecordNote, fetchRecordNotes } from "@/services/notes";
+import { CandidateNote } from "@/types/notes";
 
 type CandidateNotesSectionProps = {
   recordId: string;
 };
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
@@ -44,15 +29,7 @@ export default function CandidateNotesSection({ recordId }: CandidateNotesSectio
 
     async function fetchNotes() {
       try {
-        const response = await fetch(`${API_URL}/records/${recordId}/notes`, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch notes: ${response.status}`);
-        }
-
-        const payload = (await response.json()) as NotesResponse;
+        const payload = await fetchRecordNotes(recordId);
 
         if (isMounted) {
           setNotes(payload.data ?? []);
@@ -94,19 +71,7 @@ export default function CandidateNotesSection({ recordId }: CandidateNotesSectio
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/records/${recordId}/notes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create note: ${response.status}`);
-      }
-
-      const createdNote = (await response.json()) as CandidateNote;
+      const createdNote = await createRecordNote(recordId, content);
       setNotes((current) => [createdNote, ...current]);
       setNewNote("");
     } catch {
@@ -121,13 +86,7 @@ export default function CandidateNotesSection({ recordId }: CandidateNotesSectio
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/records/${recordId}/notes/${noteId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete note: ${response.status}`);
-      }
+      await deleteRecordNote(recordId, noteId);
 
       setNotes((current) => current.filter((note) => note.id !== noteId));
     } catch {

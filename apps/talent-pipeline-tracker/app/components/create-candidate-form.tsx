@@ -1,21 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-
-type CandidatePayload = {
-  full_name: string;
-  email: string;
-  phone: string;
-  position: string;
-  linkedin_url: string;
-  cv_url: string;
-  status: string;
-  stage: string;
-  experience_years: number;
-};
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
+import { createCandidate } from "@/services/records";
+import { CandidatePayload } from "@/types/records";
 
 const STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
 const STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
@@ -81,17 +68,7 @@ export default function CreateCandidateForm() {
     setFeedback(null);
 
     try {
-      const response = await fetch(`${API_URL}/records`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create record: ${response.status}`);
-      }
+      await createCandidate(payload);
 
       setFeedback({ type: "success", message: "Candidatura creada correctamente." });
       setForm(INITIAL_FORM);
