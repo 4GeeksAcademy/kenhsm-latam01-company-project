@@ -3,37 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-
-type CandidateRecord = {
-  id: string;
-  full_name: string;
-  email: string;
-  position: string;
-  status: string;
-  stage: string;
-};
-
-type RecordsResponse = {
-  total: number;
-  page: number;
-  limit: number;
-  data: CandidateRecord[];
-};
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
-
-async function fetchRecordsPage(page: number, limit: number): Promise<RecordsResponse> {
-  const response = await fetch(`${API_URL}/records?page=${page}&limit=${limit}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch records: ${response.status}`);
-  }
-
-  return (await response.json()) as RecordsResponse;
-}
+import { fetchRecordsPage } from "@/services/records";
+import { CandidateRecord } from "@/types/records";
 
 export default function CandidatesTable() {
   const searchParams = useSearchParams();

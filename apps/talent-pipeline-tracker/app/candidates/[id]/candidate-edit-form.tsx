@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { updateCandidate } from "@/services/records";
+import { CandidatePayload } from "@/types/records";
 
 type CandidateEditFormProps = {
   recordId: string;
@@ -17,21 +19,6 @@ type CandidateEditFormProps = {
     experience_years: number;
   };
 };
-
-type CandidatePayload = {
-  full_name: string;
-  email: string;
-  phone: string;
-  position: string;
-  linkedin_url: string;
-  cv_url: string;
-  status: string;
-  stage: string;
-  experience_years: number;
-};
-
-const DEFAULT_API_URL = "https://playground.4geeks.com/tracker/api/v1";
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, "");
 
 const STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
 const STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
@@ -89,17 +76,7 @@ export default function CandidateEditForm({ recordId, initialValues }: Candidate
     setFeedback(null);
 
     try {
-      const response = await fetch(`${API_URL}/records/${recordId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update record: ${response.status}`);
-      }
+      await updateCandidate(recordId, payload);
 
       setFeedback({ type: "success", message: "Candidatura actualizada correctamente." });
       router.refresh();
