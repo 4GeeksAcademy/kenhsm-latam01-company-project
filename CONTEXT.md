@@ -125,25 +125,3 @@ Elige Brasaland si te atraen:
 
 Los retos de IA en Brasaland van desde la predicción de demanda de ingredientes y la personalización del menú hasta agentes de soporte multilingüe y telemetría de ventas en tiempo real. Si quieres construir sistemas cuyo valor una persona no técnica entienda de inmediato, Brasaland es tu empresa.
 
-## Mi idea de Agente de IA
-
-###¿Qué información necesitaría (Entradas)?
-Para que el agente tome buenas decisiones y no tenga que "adivinar", necesitaría:
-
--Ventas del día: Cuántos platos exactos se vendieron hoy en ese local(de los 14 que hay).
-
--Las recetas: Cuántos gramos de carne, pan y salsas lleva cada plato vendido, por poner un ejemplo.
-
--El inventario actual: Lo que se supone que queda en las neveras según lo que entró, menos lo que se vendió.
-
--Historial y calendario: Qué día de la semana es mañana, si es festivo, o hay alguna situación que pueda afectar las ventas.
-
-###¿Qué produciría o desencadenaría (Salidas)?
-
--El agente no solo pensaria, sino que tomaría decisiones que ahorrarían tiempo al equipo:
-
--Generación de pedidos: Arma automáticamente el "carrito de compras" con las cantidades exactas que faltan y se lo envía al gerente del local, para su aprobación.
-
--Alertas de emergencia: Envía un mensaje instantáneo si detecta que un ingrediente vital se está agotando rápido en un local específico.
-
--Datos consolidados para la central: Manda un reporte automático a Lucía (en Medellín) sumando todo lo que van a pedir los 14 locales juntos, dándole poder para exigirle mejores precios a los proveedores.
