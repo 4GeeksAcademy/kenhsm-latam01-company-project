@@ -4,6 +4,10 @@
 
 Applies to every coding-agent task in this repository.
 
+## Activation
+
+Always active.
+
 ## Conventions
 
 1. Place public UI code in `uis/website`.
