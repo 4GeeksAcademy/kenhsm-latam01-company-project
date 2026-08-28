@@ -56,6 +56,18 @@ h1 {
   font-weight: 700;
 }
 
+.stats {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem 1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stats p {
+  margin: 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));

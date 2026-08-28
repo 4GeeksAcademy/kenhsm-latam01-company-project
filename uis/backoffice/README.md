@@ -4,8 +4,11 @@ Internal operations interface for Brasaland teams.
 
 ## Current Scope
 
-1. Static entry dashboard view (`index.html`).
-2. Base layout to evolve into internal modules (operations, HR, procurement).
+1. Entry route `/` via `index.html` rendered by modular frontend files.
+2. Own layout separated from the public website layout.
+3. Reusable UI components in `components.js`.
+4. Operational data fragment visible in UI from `data.js` aligned to `CONTEXT.md`.
+5. Base layout to evolve into internal modules (operations, HR, procurement).
 
 ## Quick Start
 
