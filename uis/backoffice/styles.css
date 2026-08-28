@@ -84,6 +84,14 @@ body {
   margin-bottom: 0;
 }
 
+.fact {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-left: 4px solid var(--primary);
+  background: #edf5f1;
+  border-radius: 8px;
+}
+
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: 1fr;
