@@ -20,7 +20,8 @@ The memory bank stores project context that agents must read before coding:
 
 ## Required Files
 
-- `business-context.md`
-- `technical-context.md`
-- `project-rules.md`
-- `current-status.md`
+- `projectbrief.md`
+- `techContext.md`
+- `progress.md`
+
+Additional supporting files can coexist when useful.
