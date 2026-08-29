@@ -7,4 +7,13 @@ Each subfolder inside `services/` must correspond to **one specific service** (f
 - **Main purpose**: to centralize all the backend logic, APIs, and queue consumers that support the company's use cases.
 - **Recommendation**: document in this file (or in sub-READMEs) the services you add, their objective, the technology used, and how to run them.
 
+## Convention for this repository
+
+Any new backend component must be created under `services/<service-name>/`.
+
+Suggested first service types:
+
+1. `admin-api/` for centralized operational endpoints.
+2. `telemetry-worker/` for data ingestion and processing.
+
 > _Spanish version: [README.es.md](./README.es.md)._
