@@ -1,0 +1,104 @@
+:root {
+  --bg: #f3f6f4;
+  --ink: #17211d;
+  --panel: #ffffff;
+  --line: #d3dfd8;
+  --primary: #205b45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f8fbf9 0%, var(--bg) 100%);
+  color: var(--ink);
+  font-family: "Verdana", "Segoe UI", sans-serif;
+}
+
+.layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: #eaf2ed;
+  padding: 1.2rem;
+}
+
+.sidebar h1 {
+  font-size: 1.15rem;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: var(--ink);
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+}
+
+.sidebar a:hover {
+  background: #dbe9e1;
+}
+
+.content {
+  padding: 1.4rem;
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  font-weight: 700;
+  margin: 0;
+}
+
+.content h2 {
+  margin-top: 0.45rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.cards article {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.9rem;
+}
+
+.cards p {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.fact {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-left: 4px solid var(--primary);
+  background: #edf5f1;
+  border-radius: 8px;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
