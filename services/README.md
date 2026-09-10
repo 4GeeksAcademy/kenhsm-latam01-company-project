@@ -16,4 +16,8 @@ Suggested first service types:
 1. `admin-api/` for centralized operational endpoints.
 2. `telemetry-worker/` for data ingestion and processing.
 
+Current service entrypoints:
+
+1. `api/` exposes the incident analysis API required by the project delivery.
+
 > _Spanish version: [README.es.md](./README.es.md)._
