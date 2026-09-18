@@ -17,6 +17,13 @@ class Settings(BaseSettings):
 
     tinydb_path: str = "data/db.json"
 
+    # Comma-separated allow-list of origins permitted to call this API from a browser.
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:

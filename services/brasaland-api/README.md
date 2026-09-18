@@ -64,3 +64,4 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `JWT_ALGORITHM` | Signing algorithm (default `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
+| `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
