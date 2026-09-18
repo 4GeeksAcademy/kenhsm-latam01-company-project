@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Authentication (AUTH-02)
+
+This app now requires a valid session for every route except `/login` and `/register`. Auth is backed by `services/brasaland-api` (JWT):
+
+- `NEXT_PUBLIC_AUTH_API_URL` — base URL of `services/brasaland-api` (defaults to `http://127.0.0.1:8010`). Set it in `.env.local`.
+- The JWT is stored in `localStorage` after login/register and sent as `Authorization: Bearer <token>` on calls to the auth API (`services/auth.ts`).
+- `app/components/auth-guard.tsx` is a client-side guard (wrapped around all routes in `app/layout.tsx`) that redirects unauthenticated users to `/login`.
+- `/account/profile` shows the authenticated user (email, role) and lets them edit their linked profile (`name`, `phone`, `address`).
+- Logging out (header button) clears the token and redirects to `/login`.
+- Any protected call to `services/brasaland-api` (via `lib/auth-fetch.ts`) that gets a `401` clears the stored token, which makes `AuthGuard` redirect to `/login` automatically.
+
 ## Getting Started
 
 First, run the development server:
