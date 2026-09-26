@@ -125,3 +125,19 @@ Con esa representación almacenada en una base de datos vectorial (o en una exte
 ### Transversal
 * [ ] La lógica de validación del proyecto anterior está extraída en `packages/shared/` y es reutilizada tanto por el script como por la API, sin duplicación.
 * [ ] El código está organizado según la estructura de carpetas del monorepo (`scripts/`, `services/`, `uis/`, `packages/shared/`).
+## Cómo entregar este proyecto
+
+El proyecto debe estar organizado en el monorepo de la siguiente manera:
+
+```text
+scripts/
+  seed_incidents.py             ← script de carga del histórico CSV
+
+packages/
+  shared/                       ← lógica de validación compartida entre script y API
+
+services/
+  <nombre-del-servicio-api>/    ← backend con endpoints de gestión y resumen
+
+uis/
+  <nombre-de-la-ui>/            ← interfaz de registro, listado y resumen
