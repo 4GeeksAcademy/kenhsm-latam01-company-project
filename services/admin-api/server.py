@@ -119,7 +119,11 @@ class ApiHandler(BaseHTTPRequestHandler):
     def _headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+<<<<<<< HEAD
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Request-ID")
+=======
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+>>>>>>> origin/main
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"[admin-api] {format % args}")

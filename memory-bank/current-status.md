@@ -46,7 +46,10 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 1. `services/brasaland-api` had no CORS middleware, so every browser call from the Next.js app (different port/origin) was silently blocked. Fixed by adding `CORSMiddleware` with an allow-list (`CORS_ORIGINS` env var, defaults to `http://localhost:3000,http://127.0.0.1:3000`).
 2. `AuthGuard` redirected authenticated users to `/login` on a **hard reload** of a protected route: `useSyncExternalStore`'s first client render after hydration briefly reports the SSR snapshot (`null`), and the redirect effect fired on that stale value before the hook resynced. Fixed by re-checking `getStoredToken()` directly inside the redirect effect instead of trusting the transient hook value for the decision (the hook value is still used for the render-time content gate).
 3. Local dev testing must use `http://localhost:3000`, not `http://127.0.0.1:3000` — Next.js Turbopack dev blocks cross-origin HMR websocket requests from `127.0.0.1` by default, which breaks client-side interactivity in that origin during `next dev`.
+<<<<<<< HEAD
 
 ## Telemetry Capture Decision
 
 Added a temporary FastAPI batch receiver at `POST /telemetry/events` with strict envelope validation and no persistence, plus a browser `track()` service with 10-second/20-event batching, beacon flush, retries, and client allowlists. The existing static backoffice emits section navigation, incident-analysis workflow/result, API latency/failure, and sanitized frontend-error events. Local telemetry uses port 8000; the incident-analysis API runs on 8001 to avoid a port collision. Inventory and auth UI flows do not exist in the current backoffice/API, so their events are not synthesized from unrelated actions and cannot yet be emitted truthfully.
+=======
+>>>>>>> origin/main
