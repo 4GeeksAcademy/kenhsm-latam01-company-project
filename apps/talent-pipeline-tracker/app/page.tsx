@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import dynamic from "next/dynamic";
 
 const CandidatesTable = dynamic(() => import("./components/candidates-table"), {
@@ -7,6 +8,10 @@ const CandidatesTable = dynamic(() => import("./components/candidates-table"), {
 const CreateCandidateForm = dynamic(() => import("./components/create-candidate-form"), {
   loading: () => <LoadingPanel label="Preparando formulario..." />,
 });
+=======
+import CandidatesTable from "./components/candidates-table";
+import CreateCandidateForm from "./components/create-candidate-form";
+>>>>>>> origin/main
 
 export default function Home() {
   return (
@@ -26,6 +31,7 @@ export default function Home() {
     </main>
   );
 }
+<<<<<<< HEAD
 
 function LoadingPanel({ label }: { label: string }) {
   return (
@@ -34,3 +40,5 @@ function LoadingPanel({ label }: { label: string }) {
     </div>
   );
 }
+=======
+>>>>>>> origin/main

@@ -1,4 +1,5 @@
 import Link from "next/link";
+<<<<<<< HEAD
 import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { fetchCandidateById } from "@/services/records";
@@ -14,6 +15,15 @@ const CandidateNotesSection = dynamic(() => import("./candidate-notes-section"),
   loading: () => <DetailLoading label="Preparando notas..." />,
 });
 
+=======
+import { notFound } from "next/navigation";
+import CandidateEditForm from "./candidate-edit-form";
+import CandidateUpdateControls from "./candidate-update-controls";
+import CandidateNotesSection from "./candidate-notes-section";
+import { fetchCandidateById } from "@/services/records";
+import { CandidateRecordDetail } from "@/types/records";
+
+>>>>>>> origin/main
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     dateStyle: "medium",
@@ -150,6 +160,7 @@ function DetailItem({
     </div>
   );
 }
+<<<<<<< HEAD
 
 function DetailLoading({ label }: { label: string }) {
   return (
@@ -158,3 +169,5 @@ function DetailLoading({ label }: { label: string }) {
     </div>
   );
 }
+=======
+>>>>>>> origin/main

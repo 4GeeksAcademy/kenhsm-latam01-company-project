@@ -2,7 +2,11 @@
 
 ## Date
 
+<<<<<<< HEAD
 2026-09-27
+=======
+2026-09-10
+>>>>>>> origin/main
 
 ## Completed
 
@@ -15,7 +19,10 @@
 7. Added the `services/api` delivery entrypoint, delegating to the shared admin API implementation without duplicating analysis logic.
 8. Added `services/brasaland-api` (FastAPI + TinyDB + uv): JWT auth (`/auth/login`, `/auth/me`), `users` CRUD (`/users`), `profiles` (`/profiles/me`), and `get_current_user`/`require_admin` dependencies applied to all non-public routes, including 5 stub sensitive routes in `operations`, `supply_chain`, and `hr` modules (AUTH-01).
 9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting every route except `/login`/`/register`, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
+<<<<<<< HEAD
 10. Applied the caching audit: Next.js interactive panels use `next/dynamic`, the candidate filtering uses dependency-scoped `useMemo`, and FastAPI has observable timing plus per-user TTL caches for sales and employees with employee-write invalidation. Decisions are documented in `CACHING_REPORT.md`.
+=======
+>>>>>>> origin/main
 
 ## Active Conventions
 
