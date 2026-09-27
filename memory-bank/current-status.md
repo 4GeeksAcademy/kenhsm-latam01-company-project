@@ -28,6 +28,10 @@
 2. Add monorepo-level scripts for lint/test/build per interface/service.
 3. Expand skill catalog for PR review and architecture decision logging.
 
+## Telemetry Plan Decision
+
+The telemetry design lives in `docs/telemetry/telemetry-plan.md` and `docs/telemetry/event-schemas.json`. The registry covers six context-mandated inventory events plus opportunities across inventory validation, authentication, access, navigation, API health, incident analysis, purchasing, accounts, and background jobs. Current operations/inventory routes are stubs; only existing auth, purchase-request, user-account, and incident-analysis flows are candidates for immediate capture. Domain inventory events remain future instrumentation until persistent traceable orders exist. Event payloads are allowlisted, user identifiers are pseudonymized, and money remains in the location currency.
+
 ## Incident Analysis Decision
 
 The CLI and API share `scripts/incident_analysis.py` so validation and metrics remain identical across terminal and backoffice workflows. The API currently keeps the latest result in memory, which is suitable for local use and should be replaced by durable storage before multi-process deployment.
