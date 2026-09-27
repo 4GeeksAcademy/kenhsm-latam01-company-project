@@ -13,7 +13,6 @@ class ProfileUpdate(BaseModel):
 
 class ProfileOut(BaseModel):
     id: str
-    user_id: str
     name: str | None = None
     phone: str | None = None
     address: str | None = None

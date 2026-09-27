@@ -36,7 +36,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
 def read_current_user(current_user: UserRecord = Depends(get_current_user)) -> CurrentUserOut:
     profile = profile_services.get_profile_by_user_id(current_user.id)
     profile_out = (
-        ProfileOut(id=profile.id, user_id=profile.user_id, name=profile.name, phone=profile.phone, address=profile.address)
+        ProfileOut(id=profile.id, name=profile.name, phone=profile.phone, address=profile.address)
         if profile
         else None
     )

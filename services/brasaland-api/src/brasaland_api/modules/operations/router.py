@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from brasaland_api.core.deps import get_current_user
+from brasaland_api.modules.operations.schemas import InventoryItem, SalesSummary
 from brasaland_api.modules.users.models import UserRecord
 
 router = APIRouter(prefix="/operations", tags=["operations"])
@@ -25,11 +26,11 @@ _INVENTORY = [
 ]
 
 
-@router.get("/sales")
-def list_sales(current_user: UserRecord = Depends(get_current_user)) -> list[dict]:
+@router.get("/sales", response_model=list[SalesSummary])
+def list_sales(current_user: UserRecord = Depends(get_current_user)) -> list[SalesSummary]:
     return _SALES
 
 
-@router.get("/inventory")
-def list_inventory(current_user: UserRecord = Depends(get_current_user)) -> list[dict]:
+@router.get("/inventory", response_model=list[InventoryItem])
+def list_inventory(current_user: UserRecord = Depends(get_current_user)) -> list[InventoryItem]:
     return _INVENTORY

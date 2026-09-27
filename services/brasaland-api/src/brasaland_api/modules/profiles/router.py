@@ -17,7 +17,7 @@ def read_my_profile(current_user: UserRecord = Depends(get_current_user)) -> Pro
     profile = profile_services.get_profile_by_user_id(current_user.id)
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil no encontrado.")
-    return ProfileOut(id=profile.id, user_id=profile.user_id, name=profile.name, phone=profile.phone, address=profile.address)
+    return ProfileOut(id=profile.id, name=profile.name, phone=profile.phone, address=profile.address)
 
 
 @router.put("/me", response_model=ProfileOut)
@@ -27,4 +27,4 @@ def update_my_profile(payload: ProfileUpdate, current_user: UserRecord = Depends
     )
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil no encontrado.")
-    return ProfileOut(id=profile.id, user_id=profile.user_id, name=profile.name, phone=profile.phone, address=profile.address)
+    return ProfileOut(id=profile.id, name=profile.name, phone=profile.phone, address=profile.address)
