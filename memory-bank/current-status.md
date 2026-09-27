@@ -46,7 +46,10 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 1. `services/brasaland-api` had no CORS middleware, so every browser call from the Next.js app (different port/origin) was silently blocked. Fixed by adding `CORSMiddleware` with an allow-list (`CORS_ORIGINS` env var, defaults to `http://localhost:3000,http://127.0.0.1:3000`).
 2. `AuthGuard` redirected authenticated users to `/login` on a **hard reload** of a protected route: `useSyncExternalStore`'s first client render after hydration briefly reports the SSR snapshot (`null`), and the redirect effect fired on that stale value before the hook resynced. Fixed by re-checking `getStoredToken()` directly inside the redirect effect instead of trusting the transient hook value for the decision (the hook value is still used for the render-time content gate).
 3. Local dev testing must use `http://localhost:3000`, not `http://127.0.0.1:3000` — Next.js Turbopack dev blocks cross-origin HMR websocket requests from `127.0.0.1` by default, which breaks client-side interactivity in that origin during `next dev`.
+<<<<<<< HEAD
 
 ## Telemetry Storage Decision
 
 Added per-event validation for `POST /telemetry/events`, a property allowlist matching the approved registry, and one bulk PostgREST insert per non-empty valid batch. The migration creates `telemetry_events`, the three analytical indexes, and insert-only privileges for `service_role`; rows store only validated `properties` in `tags`. This branch has no Supabase URL/service-role credentials, so the migration has not been applied remotely and live persistence remains pending local/deployment configuration. The frontend was not changed.
+=======
+>>>>>>> origin/main

@@ -9,7 +9,10 @@ requires-python = ">=3.12"
 dependencies = [
     "email-validator>=2.3.0",
     "fastapi>=0.141.1",
+<<<<<<< HEAD
     "httpx>=0.28.1",
+=======
+>>>>>>> origin/main
     "libpass[bcrypt]>=1.9.3",
     "pydantic-settings>=2.15.0",
     "python-jose[cryptography]>=3.5.0",

@@ -64,6 +64,7 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `JWT_ALGORITHM` | Signing algorithm (default `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
+<<<<<<< HEAD
 | `SUPABASE_URL` | Supabase project URL used by the telemetry batch writer. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret server-side key used only by FastAPI; never expose it to the browser or commit it. |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
@@ -71,3 +72,6 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 ## Telemetry storage
 
 Apply `migrations/001_create_telemetry_events.sql` to the Supabase project before enabling ingestion. It creates the append-only table, the timestamp/event-type/JSONB indexes, and insert-only access for `service_role`. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the API's local `.env` or deployment secret store. The receiver validates events individually and sends all accepted rows in one PostgREST request. `tags` contains exactly the validated event `properties`; envelope IDs are not duplicated there.
+=======
+| `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
+>>>>>>> origin/main
