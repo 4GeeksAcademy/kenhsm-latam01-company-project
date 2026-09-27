@@ -16,9 +16,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     tinydb_path: str = "data/db.json"
+    telemetry_endpoint: str = "http://localhost:8000/telemetry/events"
 
     # Comma-separated allow-list of origins permitted to call this API from a browser.
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500"
 
     @property
     def cors_origin_list(self) -> list[str]:

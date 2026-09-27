@@ -26,6 +26,7 @@ src/brasaland_api/
     ├── profiles/             # /profiles/me (display name + contact data)
     ├── operations/           # /operations/sales, /operations/inventory (protected)
     ├── supply_chain/         # /supply-chain/suppliers, /supply-chain/purchase-orders (protected)
+    ├── telemetry/            # POST /telemetry/events (temporary batch receiver)
     └── hr/                   # /hr/employees (protected)
 ```
 
@@ -42,7 +43,7 @@ uv sync
 ## Run
 
 ```bash
-uv run uvicorn brasaland_api.main:app --app-dir src --reload --port 8010
+uv run uvicorn brasaland_api.main:app --app-dir src --reload --port 8000
 ```
 
 Interactive docs: http://127.0.0.1:8010/docs
@@ -64,4 +65,5 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `JWT_ALGORITHM` | Signing algorithm (default `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
+| `TELEMETRY_ENDPOINT` | Configured telemetry receiver URL (default `http://localhost:8000/telemetry/events`; reserved for the next pipeline phase). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
