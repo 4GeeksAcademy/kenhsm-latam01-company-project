@@ -1,5 +1,12 @@
-import CandidatesTable from "./components/candidates-table";
-import CreateCandidateForm from "./components/create-candidate-form";
+import dynamic from "next/dynamic";
+
+const CandidatesTable = dynamic(() => import("./components/candidates-table"), {
+  loading: () => <LoadingPanel label="Cargando candidaturas..." />,
+});
+
+const CreateCandidateForm = dynamic(() => import("./components/create-candidate-form"), {
+  loading: () => <LoadingPanel label="Preparando formulario..." />,
+});
 
 export default function Home() {
   return (
@@ -17,5 +24,13 @@ export default function Home() {
 
       <CandidatesTable />
     </main>
+  );
+}
+
+function LoadingPanel({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <p className="text-sm font-medium text-zinc-700">{label}</p>
+    </div>
   );
 }

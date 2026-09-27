@@ -5,10 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from brasaland_api.core.cache import response_cache
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.users.models import UserRecord
 
 router = APIRouter(prefix="/hr", tags=["hr"])
+EMPLOYEES_CACHE_TTL_SECONDS = 30
 
 _EMPLOYEES = {
     "EMP-001": {"id": "EMP-001", "name": "Felipe Guerrero", "location_id": "COL-01", "salary_usd": 2400},
@@ -23,7 +25,11 @@ class EmployeeUpdate(BaseModel):
 
 @router.get("/employees")
 def list_employees(current_user: UserRecord = Depends(get_current_user)) -> list[dict]:
-    return list(_EMPLOYEES.values())
+    return response_cache.get_or_set(
+        f"hr:employees:{current_user.id}",
+        lambda: list(_EMPLOYEES.values()),
+        ttl_seconds=EMPLOYEES_CACHE_TTL_SECONDS,
+    )
 
 
 @router.put("/employees/{employee_id}")
@@ -35,4 +41,5 @@ def update_employee(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empleado no encontrado.")
     updates = payload.model_dump(exclude_none=True)
     employee.update(updates)
+    response_cache.invalidate_prefix("hr:employees:")
     return employee

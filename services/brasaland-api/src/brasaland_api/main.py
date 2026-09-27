@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+import time
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 
 from brasaland_api.core.config import get_settings
 from brasaland_api.modules.auth.router import router as auth_router
@@ -14,6 +18,28 @@ from brasaland_api.modules.supply_chain.router import router as supply_chain_rou
 from brasaland_api.modules.users.router import router as users_router
 
 app = FastAPI(title="Brasaland API", version="0.1.0")
+timing_logger = logging.getLogger("api.timing")
+timing_logger.setLevel(logging.INFO)
+if not timing_logger.handlers:
+    timing_handler = logging.StreamHandler()
+    timing_handler.setFormatter(logging.Formatter("%(message)s"))
+    timing_logger.addHandler(timing_handler)
+timing_logger.propagate = False
+
+
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    timing_logger.info(
+        "%s %s -> %s | %.1fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 app.add_middleware(
     CORSMiddleware,
