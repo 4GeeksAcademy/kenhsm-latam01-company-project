@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     tinydb_path: str = "data/db.json"
+    supabase_url: str | None = None
+    supabase_service_role_key: SecretStr | None = None
 
     # Comma-separated allow-list of origins permitted to call this API from a browser.
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
