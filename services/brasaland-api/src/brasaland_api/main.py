@@ -6,7 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from brasaland_api.core.config import get_settings
+<<<<<<< HEAD
 from brasaland_api.core.schemas import HealthOut
+=======
+>>>>>>> origin/main
 from brasaland_api.modules.auth.router import router as auth_router
 from brasaland_api.modules.hr.router import router as hr_router
 from brasaland_api.modules.operations.router import router as operations_router
@@ -32,6 +35,12 @@ app.include_router(supply_chain_router)
 app.include_router(hr_router)
 
 
+<<<<<<< HEAD
 @app.get("/health", response_model=HealthOut, tags=["health"])
 def health_check() -> HealthOut:
     return HealthOut(status="ok")
+=======
+@app.get("/health", tags=["health"])
+def health_check() -> dict:
+    return {"status": "ok"}
+>>>>>>> origin/main
