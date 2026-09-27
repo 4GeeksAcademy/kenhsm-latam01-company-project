@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-09-10
+2026-09-27
 
 ## Completed
 
@@ -15,6 +15,7 @@
 7. Added the `services/api` delivery entrypoint, delegating to the shared admin API implementation without duplicating analysis logic.
 8. Added `services/brasaland-api` (FastAPI + TinyDB + uv): JWT auth (`/auth/login`, `/auth/me`), `users` CRUD (`/users`), `profiles` (`/profiles/me`), and `get_current_user`/`require_admin` dependencies applied to all non-public routes, including 5 stub sensitive routes in `operations`, `supply_chain`, and `hr` modules (AUTH-01).
 9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting every route except `/login`/`/register`, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
+10. Audited `uis/website` and `uis/backoffice`: added page metadata, removed the favicon 404, and extracted the shared DOM mounting helper at `uis/shared/dom.js`. Lighthouse execution is documented as blocked by missing Chromium system libraries in the container.
 
 ## Active Conventions
 

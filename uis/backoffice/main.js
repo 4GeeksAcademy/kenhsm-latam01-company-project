@@ -1,11 +1,10 @@
 import { operationalSnapshot } from "./data.js";
 import { Sidebar, DashboardHeader, KpiCard, ContextFact } from "./components.js";
+import { mountApp } from "../shared/dom.js";
 
-const app = document.querySelector("#app");
 const apiBase = window.BRASALAND_API_URL || "http://127.0.0.1:8000";
 
-if (app) {
-  app.innerHTML = `
+mountApp("#app", () => `
     <div class="layout">
       ${Sidebar()}
       <main class="content">
@@ -32,10 +31,9 @@ if (app) {
         </section>
       </main>
     </div>
-  `;
+  `);
 
-  document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
-}
+document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
 
 async function analyzeIncidents(event) {
   event.preventDefault();
