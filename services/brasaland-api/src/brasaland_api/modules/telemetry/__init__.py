@@ -1,1 +1,1 @@
-"""Telemetry ingestion and storage."""
+"""Telemetry ingestion endpoints."""

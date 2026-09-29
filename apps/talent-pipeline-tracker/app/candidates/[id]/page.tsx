@@ -1,4 +1,21 @@
 import Link from "next/link";
+<<<<<<< HEAD
+import dynamic from "next/dynamic";
+import { notFound } from "next/navigation";
+import { fetchCandidateById } from "@/services/records";
+import { CandidateRecordDetail } from "@/types/records";
+
+const CandidateEditForm = dynamic(() => import("./candidate-edit-form"), {
+  loading: () => <DetailLoading label="Preparando edición..." />,
+});
+const CandidateUpdateControls = dynamic(() => import("./candidate-update-controls"), {
+  loading: () => <DetailLoading label="Preparando controles..." />,
+});
+const CandidateNotesSection = dynamic(() => import("./candidate-notes-section"), {
+  loading: () => <DetailLoading label="Preparando notas..." />,
+});
+
+=======
 import { notFound } from "next/navigation";
 import CandidateEditForm from "./candidate-edit-form";
 import CandidateUpdateControls from "./candidate-update-controls";
@@ -6,6 +23,7 @@ import CandidateNotesSection from "./candidate-notes-section";
 import { fetchCandidateById } from "@/services/records";
 import { CandidateRecordDetail } from "@/types/records";
 
+>>>>>>> origin/main
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     dateStyle: "medium",
@@ -142,3 +160,14 @@ function DetailItem({
     </div>
   );
 }
+<<<<<<< HEAD
+
+function DetailLoading({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <p className="text-sm text-zinc-600">{label}</p>
+    </div>
+  );
+}
+=======
+>>>>>>> origin/main

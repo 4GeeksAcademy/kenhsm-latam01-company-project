@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { getStoredToken } from "@/lib/auth";
 import { useStoredToken } from "@/lib/use-stored-token";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

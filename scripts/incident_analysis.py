@@ -4,22 +4,15 @@ from __future__ import annotations
 
 import csv
 import io
+import sys
 from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable, Mapping
 
-CATEGORIES = (
-    "CUSTOMER_COMPLAINT",
-    "EQUIPMENT",
-    "SUPPLY",
-    "FOOD_QUALITY",
-    "STAFF",
-)
-STATUSES = ("OPEN", "CLOSED", "DISCARDED")
-LOCATIONS = tuple(
-    [f"COL-{number:02d}" for number in range(1, 11)]
-    + [f"FLA-{number:02d}" for number in range(1, 5)]
-)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages/shared/src"))
+from brasaland_shared.incidents import CSV_CATEGORIES as CATEGORIES, CSV_LOCATIONS as LOCATIONS, CSV_STATUSES as STATUSES, validate_csv_row as shared_validate_csv_row
+
 REQUIRED_COLUMNS = (
     "incident_id",
     "date",
@@ -66,38 +59,7 @@ def _clean(value: object) -> str:
 
 
 def _validate_row(row: Mapping[str, object]) -> tuple[set[str], int | None]:
-    location = _clean(row.get("location_id"))
-    category = _clean(row.get("category"))
-    description = _clean(row.get("description"))
-    reporter = _clean(row.get("reporter_id"))
-    status = _clean(row.get("status"))
-    raw_score = _clean(row.get("satisfaction_score"))
-    reasons: set[str] = set()
-
-    if location not in LOCATIONS:
-        reasons.add("missing_location_id")
-    if category not in CATEGORIES:
-        reasons.add("invalid_or_missing_category")
-    if len(description) < 5:
-        reasons.add("empty_description")
-    if not reporter:
-        reasons.add("missing_reporter_id")
-    if status not in STATUSES:
-        reasons.add("invalid_or_missing_status")
-
-    score: int | None = None
-    if raw_score:
-        try:
-            score = int(raw_score)
-        except ValueError:
-            reasons.add("score_out_of_range")
-        else:
-            if not 1 <= score <= 5:
-                reasons.add("score_out_of_range")
-    elif status == "CLOSED":
-        reasons.add("closed_without_score")
-
-    return reasons, score
+    return shared_validate_csv_row(row)
 
 
 def analyze_rows(rows: Iterable[Mapping[str, object]]) -> AnalysisResult:

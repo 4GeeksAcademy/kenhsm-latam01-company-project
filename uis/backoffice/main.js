@@ -1,11 +1,22 @@
 import { operationalSnapshot } from "./data.js";
 import { Sidebar, DashboardHeader, KpiCard, ContextFact } from "./components.js";
 
-const app = document.querySelector("#app");
-const apiBase = window.BRASALAND_API_URL || "http://127.0.0.1:8000";
+import { loadPublicConfig } from "./runtime-config.mjs";
+import { track } from "./src/services/telemetry.mjs";
 
-if (app) {
-  app.innerHTML = `
+const app = document.querySelector("#app");
+const runtimeConfig = await loadPublicConfig();
+const apiBase = runtimeConfig.NEXT_PUBLIC_ADMIN_API_ENDPOINT || window.BRASALAND_API_URL || "http://127.0.0.1:8001";
+let activeWorkflow = null;
+let abandonmentTimer = null;
+
+import { mountApp } from "../shared/dom.js";
+
+
+
+
+
+mountApp("#app", () => `
     <div class="layout">
       ${Sidebar()}
       <main class="content">
@@ -14,6 +25,7 @@ if (app) {
           ${operationalSnapshot.metrics.map((metric) => KpiCard(metric)).join("")}
         </section>
         ${ContextFact(operationalSnapshot.contextFact)}
+        ${incidentManagementMarkup()}
         <section class="analysis-panel" id="incident-analysis">
           <div class="section-heading">
             <div>
@@ -32,10 +44,173 @@ if (app) {
         </section>
       </main>
     </div>
-  `;
+  `);
 
   document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
+  document.querySelector("#incident-file")?.addEventListener("change", startIncidentWorkflow);
+  app.addEventListener("click", trackNavigation);
+  track("section_viewed", { section_id: "operations", client_area: "backoffice", navigation_source: "unknown" });
 }
+
+window.addEventListener("error", (event) => {
+  trackFrontendError(event.error?.name || "Error", "error");
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  trackFrontendError(event.reason?.name || typeof event.reason, "error");
+});
+
+window.addEventListener("pagehide", () => {
+  abandonIncidentWorkflow("route_exit");
+});
+
+function trackNavigation(event) {
+  const link = event.target.closest("nav a");
+  if (!link) return;
+  const sectionId = link.getAttribute("href") === "#incident-analysis"
+    ? "incident_analysis"
+    : link.textContent.trim() === "Operaciones" ? "operations" : null;
+  if (!sectionId) return;
+  track("section_viewed", { section_id: sectionId, client_area: "backoffice", navigation_source: "menu" });
+}
+
+function startIncidentWorkflow(event) {
+  const file = event.currentTarget.files[0];
+  if (!file || activeWorkflow) return;
+  activeWorkflow = { id: createUuid(), startedAt: Date.now(), fileSizeBytes: file.size, step: "file_selected" };
+  track("workflow_started", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    entry_source: "menu",
+  });
+  clearTimeout(abandonmentTimer);
+  abandonmentTimer = setTimeout(() => abandonIncidentWorkflow("inactive_timeout"), 30 * 60 * 1000);
+}
+
+function completeIncidentWorkflow() {
+  if (!activeWorkflow) return;
+  track("workflow_completed", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    elapsed_seconds: Math.floor((Date.now() - activeWorkflow.startedAt) / 1000),
+  });
+  activeWorkflow = null;
+  clearTimeout(abandonmentTimer);
+}
+
+function abandonIncidentWorkflow(completionState) {
+  if (!activeWorkflow) return;
+  track("workflow_abandoned", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    last_completed_step: activeWorkflow.step,
+    elapsed_seconds: Math.floor((Date.now() - activeWorkflow.startedAt) / 1000),
+    completion_state: completionState,
+  });
+  activeWorkflow = null;
+  clearTimeout(abandonmentTimer);
+}
+
+function trackFrontendError(errorName, severity) {
+  track("frontend_error_captured", {
+    error_fingerprint: fingerprintError(errorName),
+    component_area: "shared",
+    severity,
+    release: "backoffice-static-v1",
+    occurrence_count_bucket: "1",
+  });
+}
+
+function fingerprintError(errorName) {
+  let first = 2166136261;
+  let second = 0x9e3779b9;
+  for (const character of String(errorName)) {
+    first = Math.imul(first ^ character.charCodeAt(0), 16777619);
+    second = Math.imul(second ^ character.charCodeAt(0), 2246822519);
+  }
+  return `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function createUuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+  document.querySelector("#new-incident-form")?.addEventListener("submit", createIncident);
+  document.querySelector("#incident-filters")?.addEventListener("change", loadIncidents);
+  document.querySelector("#new-incident-form select[name=origin]")?.addEventListener("change", (event) => document.querySelector("#branch-field")?.classList.toggle("is-highlighted", event.target.value === "branch"));
+  loadIncidents();
+}
+
+const branchLabels = { central: "Central (Medellín / Miami)", medellin_centro: "Medellín Centro", medellin_laureles: "Medellín Laureles", medellin_envigado: "Medellín Envigado", medellin_bello: "Medellín Bello", medellin_itagui: "Medellín Itagüí", bogota_chapinero: "Bogotá Chapinero", bogota_usaquen: "Bogotá Usaquén", cali_granada: "Cali Granada", barranquilla_norte: "Barranquilla Norte", miami_doral: "Miami Doral", miami_hialeah: "Miami Hialeah", miami_kendall: "Miami Kendall", orlando_international: "Orlando International Drive", fort_lauderdale: "Fort Lauderdale" };
+const categoryLabels = { equipment_failure: "Equipamiento", supply_issue: "Abastecimiento", customer_complaint: "Queja de cliente", staff_issue: "Personal", facility_issue: "Instalaciones", pos_system: "TPV", delivery_issue: "Delivery", other: "Otra" };
+
+function incidentManagementMarkup() {
+  const branchOptions = Object.entries(branchLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+  return `<section class="incident-panel" id="incident-management">
+    <div class="section-heading"><div><p class="kicker">Operaciones en tiempo real</p><h2>Gestor de incidencias</h2></div><span id="incident-load-status" class="form-status" role="status"></span></div>
+    <form id="new-incident-form" class="incident-form">
+      <label>Título<input name="title" required maxlength="120" /></label>
+      <label>Descripción<textarea name="description" required rows="3"></textarea></label>
+      <label>Categoría<select name="category" required><option value="">Selecciona una categoría</option>${Object.entries(categoryLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></label>
+      <label>Estado<select name="status" required><option value="open">Abierta</option><option value="in_progress">En progreso</option><option value="resolved">Resuelta</option><option value="discarded">Descartada</option></select></label>
+      <label>Origen<select name="origin" required><option value="">Selecciona un origen</option><option value="customer">Cliente</option><option value="branch">Sede</option><option value="internal">Central</option></select></label>
+      <label id="branch-field">Sede<select name="branch" required><option value="">Selecciona una sede</option>${branchOptions}</select></label>
+      <button type="submit">Registrar incidencia</button><p id="incident-form-status" class="form-status" role="status"></p>
+    </form>
+    <div id="incident-summary" class="incident-summary" aria-live="polite"></div>
+    <div id="incident-filters" class="filters"><select name="status"><option value="">Todos los estados</option><option value="open">Abierta</option><option value="in_progress">En progreso</option><option value="resolved">Resuelta</option><option value="discarded">Descartada</option></select><select name="origin"><option value="">Todos los orígenes</option><option value="customer">Cliente</option><option value="branch">Sede</option><option value="internal">Central</option></select><select name="branch"><option value="">Todas las sedes</option>${branchOptions}</select></div>
+    <div id="incident-list" class="incident-list" aria-live="polite"></div>
+  </section>`;
+}
+
+async function createIncident(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  const status = document.querySelector("#incident-form-status");
+  button.disabled = true; status.textContent = "Registrando...";
+  try {
+    const payload = Object.fromEntries(new FormData(form));
+    const response = await fetch(`${apiBase}/api/incidents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await response.json();
+    if (!response.ok) throw new Error("No se pudo registrar la incidencia. Revisa los campos.");
+    form.reset(); status.textContent = "Incidencia registrada correctamente."; await loadIncidents();
+  } catch (error) { status.textContent = error.message; } finally { button.disabled = false; }
+}
+
+async function loadIncidents() {
+  const list = document.querySelector("#incident-list");
+  const filters = document.querySelector("#incident-filters");
+  if (!list || !filters) return;
+  list.innerHTML = "<p>Cargando incidencias...</p>";
+  const params = new URLSearchParams([...filters.querySelectorAll("select")].filter((select) => select.value).map((select) => [select.name, select.value]));
+  try {
+    const [incidentsResponse, summaryResponse] = await Promise.all([fetch(`${apiBase}/api/incidents?${params}`), fetch(`${apiBase}/api/incidents/summary`)]);
+    if (!incidentsResponse.ok || !summaryResponse.ok) throw new Error("No se pudieron cargar las incidencias.");
+    const incidents = await incidentsResponse.json(); renderIncidentList(incidents); renderIncidentSummary(await summaryResponse.json());
+  } catch (error) { list.innerHTML = `<p class="error-message">${error.message} <button type="button" id="retry-incidents">Reintentar</button></p>`; document.querySelector("#retry-incidents")?.addEventListener("click", loadIncidents); }
+}
+
+function renderIncidentList(incidents) {
+  const list = document.querySelector("#incident-list");
+  if (!incidents.length) { list.innerHTML = "<p>No hay incidencias que coincidan con los filtros.</p>"; return; }
+  list.innerHTML = incidents.map((incident) => `<article class="incident-row"><div><strong>${escapeHtml(incident.title)}</strong><p>${escapeHtml(incident.description)}</p><small>${categoryLabels[incident.category] || incident.category} · ${branchLabels[incident.branch] || incident.branch}</small></div><label>Estado<select data-incident-id="${incident.id}" data-previous-status="${incident.status}">${statusOptions(incident.status)}</select></label></article>`).join("");
+  list.querySelectorAll("select[data-incident-id]").forEach((select) => select.addEventListener("change", updateIncidentStatus));
+}
+
+function statusOptions(current) { return [["open", "Abierta"], ["in_progress", "En progreso"], ["resolved", "Resuelta"], ["discarded", "Descartada"]].map(([value, label]) => `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`).join(""); }
+async function updateIncidentStatus(event) {
+  const select = event.currentTarget; const previous = select.dataset.previousStatus;
+  try { const response = await fetch(`${apiBase}/api/incidents/${select.dataset.incidentId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: select.value }) }); if (!response.ok) throw new Error(); select.dataset.previousStatus = select.value; await loadIncidents(); }
+  catch { select.value = previous; document.querySelector("#incident-load-status").textContent = "No se pudo actualizar el estado."; }
+}
+function renderIncidentSummary(summary) {
+  const groups = [["Estado", summary.by_status], ["Categoría", summary.by_category], ["Origen", summary.by_origin], ["Sede", summary.by_branch]];
+  document.querySelector("#incident-summary").innerHTML = `<span>Total <strong>${summary.total}</strong></span>${groups.flatMap(([label, values]) => Object.entries(values).map(([key, value]) => `<span>${label}: ${categoryLabels[key] || branchLabels[key] || key} <strong>${value}</strong></span>`)).join("")}`;
+}
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character])); }
 
 async function analyzeIncidents(event) {
   event.preventDefault();
@@ -46,26 +221,108 @@ async function analyzeIncidents(event) {
   const download = document.querySelector("#download-results");
   const file = fileInput.files[0];
   if (!file) return;
+  if (!activeWorkflow) startIncidentWorkflow({ currentTarget: fileInput });
+  activeWorkflow.step = "submit";
+  clearTimeout(abandonmentTimer);
+  abandonmentTimer = setTimeout(() => abandonIncidentWorkflow("inactive_timeout"), 30 * 60 * 1000);
 
   status.textContent = "Analizando...";
   result.innerHTML = "";
   download.classList.add("is-disabled");
   download.setAttribute("aria-disabled", "true");
+  const requestId = createUuid();
+  const requestStartedAt = performance.now();
+  window.__BRASALAND_ACTIVE_REQUEST_ID__ = requestId;
+  let response;
+  let failureTracked = false;
   try {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(`${apiBase}/api/incidents/analyze`, { method: "POST", body: formData });
+    response = await fetch(`${apiBase}/api/incidents/analyze`, {
+      method: "POST",
+      body: formData,
+      headers: { "X-Request-ID": requestId },
+    });
+    const durationMs = performance.now() - requestStartedAt;
+    track("api_latency_recorded", {
+      route_template: "/api/incidents/analyze",
+      http_method: "POST",
+      status_code: response.status,
+      duration_ms: durationMs,
+      sample_rate: 1,
+      service_name: "incident-analysis-api",
+    });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "No se pudo analizar el fichero.");
+    if (!response.ok) {
+      trackApiFailure(response.status);
+      trackIncidentFailure(response.status, file.size, durationMs);
+      failureTracked = true;
+      throw new Error(payload.error || "No se pudo analizar el fichero.");
+    }
     status.textContent = "Análisis completado.";
     result.innerHTML = renderAnalysis(payload);
     download.href = `${apiBase}/api/incidents/results/export`;
     download.classList.remove("is-disabled");
     download.removeAttribute("aria-disabled");
+    track("incident_analysis_completed", {
+      total_records: payload.total_records,
+      valid_records: payload.valid_records,
+      invalid_records: payload.invalid_records,
+      duration_ms: durationMs,
+      file_size_bytes: file.size,
+    });
+    completeIncidentWorkflow();
   } catch (error) {
+    if (!failureTracked) {
+      const durationMs = performance.now() - requestStartedAt;
+      if (!response) {
+        track("api_latency_recorded", {
+          route_template: "/api/incidents/analyze",
+          http_method: "POST",
+          status_code: 503,
+          duration_ms: durationMs,
+          sample_rate: 1,
+          service_name: "incident-analysis-api",
+        });
+        trackApiFailure(503);
+      }
+      trackIncidentFailure(response?.status || 0, file.size, durationMs);
+    }
     status.textContent = error.message;
     result.innerHTML = "";
+  } finally {
+    delete window.__BRASALAND_ACTIVE_REQUEST_ID__;
   }
+}
+
+function trackApiFailure(statusCode) {
+  const code = statusCode === 401 ? "unauthorized"
+    : statusCode === 403 ? "forbidden"
+      : statusCode === 404 ? "not_found"
+        : statusCode === 429 ? "rate_limited"
+          : statusCode >= 500 ? "server_error"
+            : statusCode >= 400 ? "validation_error" : "dependency_error";
+  track("api_request_failed", {
+    route_template: "/api/incidents/analyze",
+    http_method: "POST",
+    status_code: statusCode >= 400 ? statusCode : 503,
+    error_code: code,
+    retryable: statusCode === 0 || statusCode === 429 || statusCode >= 500,
+    service_name: "incident-analysis-api",
+  });
+}
+
+function trackIncidentFailure(statusCode, fileSizeBytes, durationMs) {
+  const isValidation = statusCode >= 400 && statusCode < 500;
+  track("incident_analysis_failed", {
+    failure_stage: statusCode === 0 || statusCode >= 500 ? "dependency" : isValidation ? "validation" : "analysis",
+    error_code: statusCode === 415 ? "unsupported_file"
+      : statusCode === 413 ? "file_too_large"
+        : statusCode === 400 ? "malformed_csv"
+          : statusCode === 0 || statusCode >= 500 ? "analysis_unavailable" : "internal_error",
+    file_size_bytes: fileSizeBytes,
+    duration_ms: durationMs,
+  });
 }
 
 function renderAnalysis(data) {

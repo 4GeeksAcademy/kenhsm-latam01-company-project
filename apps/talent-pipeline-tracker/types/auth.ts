@@ -37,3 +37,17 @@ export type ProfileUpdatePayload = {
   phone?: string;
   address?: string;
 };
+
+export type AuthMessage = {
+  message: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  new_password: string;
+};
+
+export type ChangePasswordPayload = {
+  current_password: string;
+  new_password: string;
+};

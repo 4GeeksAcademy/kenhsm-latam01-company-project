@@ -1,0 +1,2432 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Brasaland Telemetry Event Registry",
+  "description": "Registry of allowed telemetry events. Each definition is a complete event envelope with an allowlisted properties object. A property is required exactly when named in that event's properties.required array; other allowlisted properties are optional. x- annotations document implementation metadata; properties.additionalProperties=false is the enforcement boundary.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/inbound_order_created"
+    },
+    {
+      "$ref": "#/definitions/outbound_order_created"
+    },
+    {
+      "$ref": "#/definitions/stock_waste_registered"
+    },
+    {
+      "$ref": "#/definitions/stock_threshold_triggered"
+    },
+    {
+      "$ref": "#/definitions/direct_stock_edit_rejected"
+    },
+    {
+      "$ref": "#/definitions/ingredient_price_variance_detected"
+    },
+    {
+      "$ref": "#/definitions/inventory_order_validation_failed"
+    },
+    {
+      "$ref": "#/definitions/purchase_order_created"
+    },
+    {
+      "$ref": "#/definitions/workflow_started"
+    },
+    {
+      "$ref": "#/definitions/workflow_completed"
+    },
+    {
+      "$ref": "#/definitions/workflow_abandoned"
+    },
+    {
+      "$ref": "#/definitions/auth_login_succeeded"
+    },
+    {
+      "$ref": "#/definitions/auth_login_failed"
+    },
+    {
+      "$ref": "#/definitions/session_expired"
+    },
+    {
+      "$ref": "#/definitions/access_denied"
+    },
+    {
+      "$ref": "#/definitions/user_account_created"
+    },
+    {
+      "$ref": "#/definitions/user_account_updated"
+    },
+    {
+      "$ref": "#/definitions/user_account_deleted"
+    },
+    {
+      "$ref": "#/definitions/section_viewed"
+    },
+    {
+      "$ref": "#/definitions/api_latency_recorded"
+    },
+    {
+      "$ref": "#/definitions/api_request_failed"
+    },
+    {
+      "$ref": "#/definitions/frontend_error_captured"
+    },
+    {
+      "$ref": "#/definitions/incident_analysis_completed"
+    },
+    {
+      "$ref": "#/definitions/incident_analysis_failed"
+    },
+    {
+      "$ref": "#/definitions/background_job_failed"
+    }
+  ],
+  "definitions": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event UUID; retain across retries."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Occurrence time in ISO 8601 UTC."
+    },
+    "sessionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Random session identifier, never an auth token; null when no user session exists."
+    },
+    "userId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Pseudonymous internal user identifier; null for anonymous/system events."
+    },
+    "schemaVersion": {
+      "const": "1.0.0",
+      "description": "Semantic version of this event contract."
+    },
+    "requestId": {
+      "type": "string",
+      "format": "uuid",
+      "minLength": 1,
+      "description": "Correlation UUID shared across client, API and logs; client-generated for events without a request."
+    },
+    "location_id": {
+      "type": "string",
+      "enum": [
+        "COL-01", "COL-02", "COL-03", "COL-04", "COL-05", "COL-06", "COL-07", "COL-08", "COL-09", "COL-10",
+        "FLA-01", "FLA-02", "FLA-03", "FLA-04"
+      ],
+      "description": "Brasaland location identifier."
+    },
+    "country": {
+      "type": "string",
+      "enum": [
+        "CO",
+        "US"
+      ],
+      "description": "Country code for the location; independent of UI language."
+    },
+    "product_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable product identifier, not a free-text product name."
+    },
+    "product_category": {
+      "type": "string",
+      "enum": [
+        "protein",
+        "vegetable",
+        "sauce",
+        "beverage",
+        "packaging",
+        "cleaning"
+      ],
+      "description": "Controlled product category."
+    },
+    "quantity": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Event-specific quantity; see telemetry plan for threshold/rejected-attempt semantics."
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "g",
+        "l",
+        "ml",
+        "unit",
+        "box",
+        "pack"
+      ],
+      "description": "Controlled measurement unit."
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "COP",
+        "USD"
+      ],
+      "description": "Local currency; never converted in telemetry capture."
+    },
+    "supplier_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable supplier identifier; do not send supplier contact details."
+    },
+    "commonInventoryProperties": {
+      "type": "object",
+      "properties": {
+        "location_id": {
+          "$ref": "#/definitions/location_id"
+        },
+        "country": {
+          "$ref": "#/definitions/country"
+        },
+        "product_id": {
+          "$ref": "#/definitions/product_id"
+        },
+        "product_category": {
+          "$ref": "#/definitions/product_category"
+        },
+        "quantity": {
+          "$ref": "#/definitions/quantity"
+        },
+        "unit": {
+          "$ref": "#/definitions/unit"
+        },
+        "currency": {
+          "$ref": "#/definitions/currency"
+        }
+      },
+      "required": [
+        "location_id",
+        "country",
+        "product_id",
+        "product_category",
+        "quantity",
+        "unit",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "inbound_order_created": {
+      "type": "object",
+      "description": "A location records receipt of goods from a supplier.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know what and how much each location buys from each supplier.",
+      "x-decision": "Consolidate purchases across locations to negotiate better supplier prices.",
+      "x-delivery": "batch; every 15 minutes, daily aggregate",
+      "x-sensitivity": "Business purchasing data; no employee or customer PII.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "inbound_order_created"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "$ref": "#/definitions/quantity"
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "supplier_id": {
+              "$ref": "#/definitions/supplier_id"
+            },
+            "inbound_order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable InboundOrder identifier."
+            },
+            "unit_price": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Price per unit in currency; never converted."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "supplier_id",
+            "inbound_order_id",
+            "unit_price"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outbound_order_created": {
+      "type": "object",
+      "description": "A location records ingredient consumption for food preparation.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know which ingredients are consumed and at what rate by location.",
+      "x-decision": "Adjust automatic supplier reorder suggestions.",
+      "x-delivery": "batch; every 15 minutes, daily aggregate",
+      "x-sensitivity": "Operational inventory data; no employee or customer PII.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "outbound_order_created"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "$ref": "#/definitions/quantity"
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "reason": {
+              "const": "preparation",
+              "description": "The outbound movement represents ingredient consumption in meal preparation."
+            },
+            "outbound_order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable OutboundOrder identifier."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "reason",
+            "outbound_order_id"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "stock_waste_registered": {
+      "type": "object",
+      "description": "A location records inventory loss, spoilage, kitchen error or suspected theft.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know how much product is lost, why and at which location.",
+      "x-decision": "Prioritize waste audits at locations with the weakest indicator.",
+      "x-delivery": "batch; every 15 minutes, weekly aggregate",
+      "x-sensitivity": "Operational inventory data; theft reason is a controlled enum, not an accusation about a person.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "stock_waste_registered"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "$ref": "#/definitions/quantity"
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "expired",
+                "kitchen_error",
+                "theft_suspected"
+              ],
+              "description": "Required merma cause from the company context."
+            },
+            "outbound_order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable OutboundOrder identifier that records this waste movement."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "reason",
+            "outbound_order_id"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "stock_threshold_triggered": {
+      "type": "object",
+      "description": "Stock crosses below the minimum configured for a product at a location.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know how often a location falls short of a key ingredient.",
+      "x-decision": "Adjust the minimum threshold or replenishment frequency.",
+      "x-delivery": "stream; under 10 seconds",
+      "x-sensitivity": "Operational inventory data; no personal data.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "stock_threshold_triggered"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Stock balance after the committed movement that crossed below minimum."
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "minimum_quantity": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Configured location-specific minimum in the same unit."
+            },
+            "threshold_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Version of threshold configuration used for this crossing."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "minimum_quantity",
+            "threshold_version"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "direct_stock_edit_rejected": {
+      "type": "object",
+      "description": "An attempt to change stock outside a traceable inbound or outbound order is rejected.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know whether staff attempt to bypass stock traceability.",
+      "x-decision": "Reinforce training or permissions at locations with recurring attempts.",
+      "x-delivery": "stream; under 10 seconds",
+      "x-sensitivity": "Actor is pseudonymous in userId; do not include names, raw request body or free-text reason.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "direct_stock_edit_rejected"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "type": "number",
+              "description": "Attempted quantity, including zero or negative values rejected by the stock-mutation rule."
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "rejection_code": {
+              "type": "string",
+              "enum": [
+                "direct_mutation_forbidden",
+                "missing_order_reference",
+                "permission_denied"
+              ],
+              "description": "Controlled server-side reason for rejection."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "rejection_code"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingredient_price_variance_detected": {
+      "type": "object",
+      "description": "Received ingredient unit price exceeds the configured variance against history for the same product and supplier.",
+      "x-classification": "mandatory",
+      "x-hypothesis": "We need to know when a key ingredient has an anomalous price increase.",
+      "x-decision": "Alert purchasing to renegotiate or seek an alternative supplier.",
+      "x-delivery": "stream; under 1 minute",
+      "x-sensitivity": "Commercially sensitive price data; access restricted to purchasing/finance; currency remains local.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "ingredient_price_variance_detected"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "product_id": {
+              "$ref": "#/definitions/product_id"
+            },
+            "product_category": {
+              "$ref": "#/definitions/product_category"
+            },
+            "quantity": {
+              "$ref": "#/definitions/quantity"
+            },
+            "unit": {
+              "$ref": "#/definitions/unit"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "supplier_id": {
+              "$ref": "#/definitions/supplier_id"
+            },
+            "current_unit_price": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Received price per product unit in the location currency."
+            },
+            "historical_unit_price": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Comparison price for same product/supplier/currency and configured period."
+            },
+            "variance_percent": {
+              "type": "number",
+              "description": "Percentage change from historical price."
+            },
+            "threshold_percent": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Configured percentage that triggered this event."
+            },
+            "inbound_order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable received InboundOrder identifier."
+            }
+          },
+          "required": [
+            "location_id",
+            "country",
+            "product_id",
+            "product_category",
+            "quantity",
+            "unit",
+            "currency",
+            "supplier_id",
+            "current_unit_price",
+            "historical_unit_price",
+            "variance_percent",
+            "threshold_percent",
+            "inbound_order_id"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "inventory_order_validation_failed": {
+      "type": "object",
+      "description": "An inbound/outbound inventory order fails one or more controlled validation rules.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which rules and products produce order errors.",
+      "x-decision": "Prioritize fixes to forms, catalog data or training.",
+      "x-delivery": "batch; every 15 minutes",
+      "x-sensitivity": "No raw form values or request body; only controlled rule codes.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "inventory_order_validation_failed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_type": {
+              "type": "string",
+              "enum": [
+                "inbound",
+                "outbound",
+                "waste"
+              ],
+              "description": "Kind of inventory operation that failed validation."
+            },
+            "failure_codes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Controlled validation rules failed by this submission; never raw validation text.",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "unknown_product",
+                  "invalid_quantity",
+                  "invalid_unit",
+                  "missing_supplier",
+                  "invalid_reason",
+                  "location_mismatch",
+                  "permission_denied",
+                  "missing_order_reference"
+                ]
+              }
+            },
+            "item_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of submitted order lines, not their values."
+            },
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "failed_product_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/product_id"
+              },
+              "description": "Stable IDs for product lines that failed; omit when the error is order-level."
+            }
+          },
+          "required": [
+            "order_type",
+            "failure_codes",
+            "item_count"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "purchase_order_created": {
+      "type": "object",
+      "description": "A purchase request is submitted to a supplier; it is not a receipt and does not itself change stock.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know purchase-request volume by location and supplier.",
+      "x-decision": "Review purchasing workload and connect requests to later receipts.",
+      "x-delivery": "batch; every 15 minutes, daily aggregate",
+      "x-sensitivity": "Commercial data; IDs only, no supplier contact or free-text notes.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "purchase_order_created"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "purchase_order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable purchase request identifier; distinct from an inbound receipt."
+            },
+            "supplier_id": {
+              "$ref": "#/definitions/supplier_id"
+            },
+            "location_id": {
+              "$ref": "#/definitions/location_id"
+            },
+            "country": {
+              "$ref": "#/definitions/country"
+            },
+            "currency": {
+              "$ref": "#/definitions/currency"
+            },
+            "line_count": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of product lines in the request; no item body is copied."
+            }
+          },
+          "required": [
+            "purchase_order_id",
+            "supplier_id",
+            "location_id",
+            "country",
+            "currency",
+            "line_count"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow_started": {
+      "type": "object",
+      "description": "A supported user workflow begins.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need a denominator of started workflows to measure completion and abandonment rates.",
+      "x-decision": "Identify flows with high drop-off and prioritize usability work.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "Behavioral event; random workflow instance ID only, no field contents.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "workflow_started"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workflow_id": {
+              "type": "string",
+              "enum": [
+                "incident_analysis",
+                "inbound_order",
+                "outbound_order",
+                "purchase_order",
+                "account_update"
+              ],
+              "description": "Controlled workflow name."
+            },
+            "workflow_instance_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Random UUID to correlate this workflow instance without using business or personal IDs."
+            },
+            "entry_source": {
+              "type": "string",
+              "enum": [
+                "menu",
+                "dashboard",
+                "deep_link",
+                "other"
+              ],
+              "description": "Controlled source that opened the workflow."
+            }
+          },
+          "required": [
+            "workflow_id",
+            "workflow_instance_id",
+            "entry_source"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow_completed": {
+      "type": "object",
+      "description": "A supported user workflow completes successfully.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which started workflows complete and how long completion takes.",
+      "x-decision": "Compare completion rates and simplify slow or confusing flows.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "Behavioral event; random workflow instance ID only, no form values.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "workflow_completed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workflow_id": {
+              "type": "string",
+              "enum": [
+                "incident_analysis",
+                "inbound_order",
+                "outbound_order",
+                "purchase_order",
+                "account_update"
+              ],
+              "description": "Controlled workflow name."
+            },
+            "workflow_instance_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Random UUID matching the corresponding start event."
+            },
+            "elapsed_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Elapsed time from workflow_started, rounded to whole seconds."
+            }
+          },
+          "required": [
+            "workflow_id",
+            "workflow_instance_id",
+            "elapsed_seconds"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow_abandoned": {
+      "type": "object",
+      "description": "A supported workflow was started but not completed within the inactivity window or before route exit.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which workflows and steps users abandon.",
+      "x-decision": "Simplify the flow or investigate blocking dependencies.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "Behavioral data; pseudonymous actor only, no field contents; abandonment is not an employee-performance measure.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "workflow_abandoned"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workflow_id": {
+              "type": "string",
+              "enum": [
+                "incident_analysis",
+                "inbound_order",
+                "outbound_order",
+                "purchase_order",
+                "account_update"
+              ],
+              "description": "Controlled workflow name."
+            },
+            "workflow_instance_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Random UUID matching the corresponding start event."
+            },
+            "last_completed_step": {
+              "type": "string",
+              "enum": [
+                "file_selected",
+                "form_started",
+                "items_entered",
+                "review",
+                "submit"
+              ],
+              "description": "Last completed controlled step; never user-entered text."
+            },
+            "elapsed_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Elapsed time from workflow_started, rounded to whole seconds."
+            },
+            "completion_state": {
+              "type": "string",
+              "enum": [
+                "inactive_timeout",
+                "route_exit"
+              ],
+              "description": "Controlled reason the workflow is considered abandoned."
+            }
+          },
+          "required": [
+            "workflow_id",
+            "workflow_instance_id",
+            "last_completed_step",
+            "elapsed_seconds",
+            "completion_state"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "auth_login_succeeded": {
+      "type": "object",
+      "description": "A user successfully authenticates.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to understand valid access volume and authentication method.",
+      "x-decision": "Plan support and detect unusual shifts in access patterns.",
+      "x-delivery": "batch; every 15 minutes",
+      "x-sensitivity": "userId is pseudonymous; never include username, email, password, token or IP.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "auth_login_succeeded"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "auth_method": {
+              "type": "string",
+              "enum": [
+                "password"
+              ],
+              "description": "Controlled authentication method used for the successful login."
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ],
+              "description": "Role assigned to the authenticated account."
+            },
+            "client_area": {
+              "type": "string",
+              "enum": [
+                "backoffice",
+                "web",
+                "unknown"
+              ],
+              "description": "Controlled application area initiating the login."
+            }
+          },
+          "required": [
+            "auth_method",
+            "role",
+            "client_area"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "auth_login_failed": {
+      "type": "object",
+      "description": "A login attempt is rejected.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know daily failed-login frequency and controlled failure causes without collecting credentials.",
+      "x-decision": "Detect abuse, account issues or access problems and tune protections.",
+      "x-delivery": "stream; under 10 seconds",
+      "x-sensitivity": "No username/email, password, IP, request body or userId; sessionId/userId may be null.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "auth_login_failed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "failure_reason": {
+              "type": "string",
+              "enum": [
+                "invalid_credentials",
+                "inactive_account",
+                "rate_limited",
+                "auth_service_error"
+              ],
+              "description": "Controlled failure class; unknown account and wrong password map to invalid_credentials."
+            },
+            "client_area": {
+              "type": "string",
+              "enum": [
+                "backoffice",
+                "web",
+                "unknown"
+              ],
+              "description": "Controlled application area initiating the login."
+            }
+          },
+          "required": [
+            "failure_reason",
+            "client_area"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "session_expired": {
+      "type": "object",
+      "description": "An authenticated session/token is observed to expire or be revoked.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know how often token expiry interrupts workflows.",
+      "x-decision": "Tune token lifetime or improve reauthentication UX.",
+      "x-delivery": "batch; every 15 minutes",
+      "x-sensitivity": "Pseudonymous user/session IDs only; never emit the JWT or token claims beyond approved role.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "session_expired"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "expiry_reason": {
+              "type": "string",
+              "enum": [
+                "token_expired",
+                "token_revoked",
+                "unauthorized_response"
+              ],
+              "description": "Controlled cause that ended access."
+            },
+            "session_age_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Approximate elapsed session age when expiry was observed."
+            },
+            "client_area": {
+              "type": "string",
+              "enum": [
+                "backoffice",
+                "web",
+                "unknown"
+              ],
+              "description": "Controlled application area where expiry was observed."
+            }
+          },
+          "required": [
+            "expiry_reason",
+            "session_age_seconds",
+            "client_area"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "access_denied": {
+      "type": "object",
+      "description": "An authenticated actor is denied access by authorization policy.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which protected actions are denied and by which controlled rule.",
+      "x-decision": "Correct permission configuration or review suspicious patterns.",
+      "x-delivery": "stream; under 10 seconds",
+      "x-sensitivity": "userId is pseudonymous; resource is a route template, never a raw URL or supplied identifier.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "access_denied"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "resource_type": {
+              "type": "string",
+              "enum": [
+                "user",
+                "profile",
+                "inventory",
+                "purchase_order",
+                "employee",
+                "other"
+              ],
+              "description": "Controlled resource category, not a resource ID or URL."
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "read",
+                "create",
+                "update",
+                "delete",
+                "direct_stock_edit"
+              ],
+              "description": "Controlled attempted operation."
+            },
+            "denial_code": {
+              "type": "string",
+              "enum": [
+                "role_forbidden",
+                "resource_forbidden",
+                "authentication_required"
+              ],
+              "description": "Controlled authorization policy outcome."
+            },
+            "http_status": {
+              "type": "integer",
+              "enum": [
+                401,
+                403
+              ],
+              "description": "HTTP status returned to the caller."
+            },
+            "actor_role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin",
+                "anonymous",
+                "unknown"
+              ],
+              "description": "Role category at the time of denial."
+            }
+          },
+          "required": [
+            "resource_type",
+            "action",
+            "denial_code",
+            "http_status",
+            "actor_role"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "user_account_created": {
+      "type": "object",
+      "description": "A user account is created.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know account creation volume and role assignment.",
+      "x-decision": "Plan onboarding and audit role assignment.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "No email/name; userId is pseudonymous and role is an approved enum.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "user_account_created"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "assigned_role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ],
+              "description": "Role assigned to the newly created account."
+            },
+            "creation_source": {
+              "type": "string",
+              "enum": [
+                "self_registration",
+                "admin"
+              ],
+              "description": "Controlled source of the account creation."
+            }
+          },
+          "required": [
+            "assigned_role",
+            "creation_source"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "user_account_updated": {
+      "type": "object",
+      "description": "Account credentials metadata or role is updated.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know the frequency and category of account/role changes.",
+      "x-decision": "Review access governance and administrative errors.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "No email, name, phone, address or old/new credential values; userId is pseudonymous.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "user_account_updated"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "changed_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Names of changed fields only; values such as email are never emitted.",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "email",
+                  "role",
+                  "active_status"
+                ]
+              }
+            },
+            "target_role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin",
+                "unknown"
+              ],
+              "description": "Role category after the update."
+            },
+            "change_source": {
+              "type": "string",
+              "enum": [
+                "self_service",
+                "admin"
+              ],
+              "description": "Controlled source of the account update."
+            }
+          },
+          "required": [
+            "changed_fields",
+            "target_role",
+            "change_source"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "user_account_deleted": {
+      "type": "object",
+      "description": "A user account is deleted.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know account deactivation volume and confirm access cleanup.",
+      "x-decision": "Check that account offboarding is timely.",
+      "x-delivery": "stream; under 1 minute",
+      "x-sensitivity": "No email/name; actor and target identifiers are pseudonymous; do not retain a deleted identity mapping in analytics.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "user_account_deleted"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "deletion_source": {
+              "type": "string",
+              "enum": [
+                "self_service",
+                "admin"
+              ],
+              "description": "Controlled source that initiated deletion."
+            },
+            "actor_role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin",
+                "unknown"
+              ],
+              "description": "Role category of the actor who requested deletion."
+            }
+          },
+          "required": [
+            "deletion_source",
+            "actor_role"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "section_viewed": {
+      "type": "object",
+      "description": "A user enters a normalized application section.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which backoffice sections operators visit most.",
+      "x-decision": "Prioritize section improvements and training.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "Behavioral data linked only to pseudonymous user/session; no raw URL or query parameters.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "section_viewed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "section_id": {
+              "type": "string",
+              "enum": [
+                "operations",
+                "incident_analysis",
+                "purchases",
+                "people",
+                "training",
+                "inventory",
+                "other"
+              ],
+              "description": "Normalized section identifier, not a raw URL."
+            },
+            "client_area": {
+              "type": "string",
+              "enum": [
+                "backoffice",
+                "web",
+                "other"
+              ],
+              "description": "Controlled application surface."
+            },
+            "navigation_source": {
+              "type": "string",
+              "enum": [
+                "menu",
+                "deep_link",
+                "redirect",
+                "unknown"
+              ],
+              "description": "Controlled navigation origin."
+            }
+          },
+          "required": [
+            "section_id",
+            "client_area",
+            "navigation_source"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "api_latency_recorded": {
+      "type": "object",
+      "description": "A completed API request duration is recorded using a monotonic clock.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know response-time distributions by route and status.",
+      "x-decision": "Prioritize API optimization and capacity using percentiles.",
+      "x-delivery": "batch; aggregate every 5 minutes",
+      "x-sensitivity": "No query string, body, IP, user-agent or raw URL; successful requests may be sampled.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "api_latency_recorded"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "route_template": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "Normalized route pattern, e.g. /users/{user_id}; no concrete path values."
+            },
+            "http_method": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ],
+              "description": "HTTP method for the API request."
+            },
+            "status_code": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599,
+              "description": "HTTP response status code."
+            },
+            "duration_ms": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Request duration in milliseconds measured with a monotonic clock."
+            },
+            "sample_rate": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "description": "Fraction of eligible requests sampled, from greater than 0 through 1."
+            },
+            "service_name": {
+              "type": "string",
+              "enum": [
+                "brasaland-api",
+                "incident-analysis-api",
+                "other"
+              ],
+              "description": "Controlled API service identifier."
+            }
+          },
+          "required": [
+            "route_template",
+            "http_method",
+            "status_code",
+            "duration_ms",
+            "sample_rate",
+            "service_name"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "api_request_failed": {
+      "type": "object",
+      "description": "An API request returns a failure response.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which normalized API routes fail and with what stable status/error class.",
+      "x-decision": "Prioritize regressions and identify service incidents.",
+      "x-delivery": "stream for 5xx under 10 seconds; batch expected 4xx counts",
+      "x-sensitivity": "No body, raw error message, query, IP or concrete URL; failure code is controlled.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "api_request_failed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "route_template": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "Normalized route pattern; no concrete path values, query string or URL."
+            },
+            "http_method": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ],
+              "description": "HTTP method for the failed API request."
+            },
+            "status_code": {
+              "type": "integer",
+              "minimum": 400,
+              "maximum": 599,
+              "description": "Failure status code returned to the caller."
+            },
+            "error_code": {
+              "type": "string",
+              "enum": [
+                "validation_error",
+                "not_found",
+                "unauthorized",
+                "forbidden",
+                "conflict",
+                "rate_limited",
+                "server_error",
+                "dependency_error",
+                "unknown"
+              ],
+              "description": "Controlled failure class; never a raw exception or response message."
+            },
+            "retryable": {
+              "type": "boolean",
+              "description": "Whether retrying this request is expected to be safe and potentially successful."
+            },
+            "service_name": {
+              "type": "string",
+              "enum": [
+                "brasaland-api",
+                "incident-analysis-api",
+                "other"
+              ],
+              "description": "Controlled API service identifier."
+            }
+          },
+          "required": [
+            "route_template",
+            "http_method",
+            "status_code",
+            "error_code",
+            "retryable",
+            "service_name"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "frontend_error_captured": {
+      "type": "object",
+      "description": "An uncaught or boundary-captured client error is reported by fingerprint.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know how often uncaught client errors affect each interface area.",
+      "x-decision": "Prioritize fixes that block operator work.",
+      "x-delivery": "stream; under 30 seconds",
+      "x-sensitivity": "Only a generated fingerprint and controlled area/severity; no raw message, stack, form values or URL.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "frontend_error_captured"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "error_fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{16,64}$",
+              "description": "Stable one-way fingerprint generated from a sanitized error class; not a raw message or stack."
+            },
+            "component_area": {
+              "type": "string",
+              "enum": [
+                "auth",
+                "operations",
+                "incident_analysis",
+                "purchases",
+                "people",
+                "training",
+                "shared"
+              ],
+              "description": "Controlled interface area where the error was captured."
+            },
+            "severity": {
+              "type": "string",
+              "enum": [
+                "error",
+                "fatal"
+              ],
+              "description": "Controlled severity classification."
+            },
+            "release": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "Short deployment release identifier without build secrets or environment values."
+            },
+            "occurrence_count_bucket": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2-5",
+                "6-20",
+                "21+"
+              ],
+              "description": "Number of occurrences in the throttle window, represented as a bucket."
+            }
+          },
+          "required": [
+            "error_fingerprint",
+            "component_area",
+            "severity",
+            "release",
+            "occurrence_count_bucket"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "incident_analysis_completed": {
+      "type": "object",
+      "description": "CSV incident analysis finishes successfully; file contents are not retained in telemetry.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know analysis volume, duration and summarized data-quality outcomes.",
+      "x-decision": "Size the workflow and prioritize data-quality improvements.",
+      "x-delivery": "batch; hourly",
+      "x-sensitivity": "Never include filename, CSV rows, incident descriptions, customer IDs, reporter IDs or raw file content.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "incident_analysis_completed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "total_records": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of CSV records analyzed; no row contents are included."
+            },
+            "valid_records": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of records passing validation."
+            },
+            "invalid_records": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of invalid or incomplete records."
+            },
+            "duration_ms": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Analysis execution duration in milliseconds."
+            },
+            "file_size_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Uploaded file size, without retaining its filename or contents."
+            }
+          },
+          "required": [
+            "total_records",
+            "valid_records",
+            "invalid_records",
+            "duration_ms",
+            "file_size_bytes"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "incident_analysis_failed": {
+      "type": "object",
+      "description": "CSV incident analysis fails at a controlled processing stage.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which analysis stage fails and how often by stable error class.",
+      "x-decision": "Fix data validation, file limits or service availability.",
+      "x-delivery": "stream for internal errors under 30 seconds; batch invalid-file counts",
+      "x-sensitivity": "Never include filename, CSV rows, descriptions, IDs from the file, raw exception or stack trace.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "incident_analysis_failed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "failure_stage": {
+              "type": "string",
+              "enum": [
+                "upload",
+                "file_type_check",
+                "parse",
+                "validation",
+                "analysis",
+                "export",
+                "dependency"
+              ],
+              "description": "Controlled stage at which processing stopped."
+            },
+            "error_code": {
+              "type": "string",
+              "enum": [
+                "unsupported_file",
+                "file_too_large",
+                "malformed_csv",
+                "invalid_encoding",
+                "analysis_unavailable",
+                "export_failed",
+                "internal_error"
+              ],
+              "description": "Controlled failure code; no raw exception or file value."
+            },
+            "file_size_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Uploaded file size, without filename or contents."
+            },
+            "duration_ms": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Elapsed processing time before failure in milliseconds."
+            }
+          },
+          "required": [
+            "failure_stage",
+            "error_code",
+            "file_size_bytes",
+            "duration_ms"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "background_job_failed": {
+      "type": "object",
+      "description": "A scheduled or asynchronous internal job fails.",
+      "x-classification": "opportunity",
+      "x-hypothesis": "We need to know which internal executions fail and whether retries recover.",
+      "x-decision": "Retry, pause dependent work or alert the operational owner.",
+      "x-delivery": "stream; under 30 seconds",
+      "x-sensitivity": "No job input/output payload, stack trace, secret, endpoint credential or personal data.",
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/timestamp"
+        },
+        "sessionId": {
+          "$ref": "#/definitions/sessionId"
+        },
+        "userId": {
+          "$ref": "#/definitions/userId"
+        },
+        "event_type": {
+          "const": "background_job_failed"
+        },
+        "schemaVersion": {
+          "$ref": "#/definitions/schemaVersion"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "job_name": {
+              "type": "string",
+              "enum": [
+                "telemetry_batch",
+                "inventory_threshold_check",
+                "report_generation",
+                "data_sync",
+                "other"
+              ],
+              "description": "Controlled name of the scheduled or asynchronous job."
+            },
+            "failure_code": {
+              "type": "string",
+              "enum": [
+                "timeout",
+                "dependency_unavailable",
+                "invalid_output",
+                "permission_denied",
+                "unknown"
+              ],
+              "description": "Controlled failure classification, without exception text."
+            },
+            "attempt_number": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "One-based execution attempt count."
+            },
+            "will_retry": {
+              "type": "boolean",
+              "description": "Whether the scheduler plans another attempt."
+            },
+            "duration_ms": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Elapsed execution time before failure in milliseconds."
+            }
+          },
+          "required": [
+            "job_name",
+            "failure_code",
+            "attempt_number",
+            "will_retry",
+            "duration_ms"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
