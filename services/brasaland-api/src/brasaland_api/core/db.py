@@ -28,3 +28,9 @@ def users_table():
 
 def profiles_table():
     return get_db().table("profiles")
+
+
+def incidents_table():
+    return get_db().table("incidents")
+def password_reset_tokens_table():
+    return get_db().table("password_reset_tokens")

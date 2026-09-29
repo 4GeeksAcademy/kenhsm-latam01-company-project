@@ -33,7 +33,7 @@ class TelemetryBatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     events: list[TelemetryEvent]
-
+    received: int
 
 class TelemetryBatchAccepted(BaseModel):
     received: int

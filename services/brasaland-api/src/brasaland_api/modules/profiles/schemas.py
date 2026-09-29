@@ -13,7 +13,10 @@ class ProfileUpdate(BaseModel):
 
 class ProfileOut(BaseModel):
     id: str
+<<<<<<< HEAD
+=======
     user_id: str
+>>>>>>> origin/main
     name: str | None = None
     phone: str | None = None
     address: str | None = None
