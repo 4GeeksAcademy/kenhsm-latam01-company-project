@@ -1,0 +1,1 @@
+"""Shared Brasaland domain helpers."""
