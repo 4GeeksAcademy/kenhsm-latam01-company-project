@@ -21,7 +21,7 @@ src/brasaland_api/
 │   ├── security.py         # Password hashing + JWT helpers
 │   └── deps.py              # get_current_user / require_admin dependencies
 └── modules/
-    ├── auth/                # POST /auth/login, GET /auth/me
+    ├── auth/                # Login, reset/change password, current user
     ├── users/                # /users CRUD (credentials only)
     ├── profiles/             # /profiles/me (display name + contact data)
     ├── operations/           # /operations/sales, /operations/inventory (protected)
@@ -53,6 +53,8 @@ Interactive docs: http://127.0.0.1:8010/docs
 2. `POST /auth/login` — form-encoded `username`/`password`, returns a JWT `access_token`.
 3. Send `Authorization: Bearer <token>` on subsequent requests to any protected route.
 4. `GET /auth/me` — returns the authenticated user's `email`, `role`, and linked `Profile`.
+5. `POST /auth/forgot-password` sends a short-lived reset link through Resend and always returns a generic confirmation.
+6. `POST /auth/reset-password` accepts a reset token once; `POST /auth/change-password` requires the current session token.
 
 Unauthenticated requests to protected routes return `401`. Requests to a resource that belongs to another user (e.g. updating another user's credentials without an admin role) return `403`.
 
@@ -65,3 +67,9 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
+| `RESEND_API_KEY` | Resend API key used to deliver password-reset emails. Required for delivery; never commit the value. |
+| `RESEND_FROM_EMAIL` | Verified sender address configured in Resend (default `onboarding@resend.dev` for testing). |
+| `FRONTEND_BASE_URL` | Base URL used to build reset links (default `http://localhost:3000`). |
+| `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES` | Reset token lifetime, restricted to 15–60 minutes (default `30`). |
+
+Run the API unit tests from this directory with `PYTHONPATH=src python -m unittest discover -s tests`.

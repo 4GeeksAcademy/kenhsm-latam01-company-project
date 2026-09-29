@@ -7,6 +7,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "brasaland-shared",
     "email-validator>=2.3.0",
     "fastapi>=0.141.1",
     "libpass[bcrypt]>=1.9.3",
@@ -16,6 +17,9 @@ dependencies = [
     "tinydb>=4.9.0",
     "uvicorn[standard]>=0.53.0",
 ]
+
+[tool.uv.sources]
+brasaland-shared = { path = "../../packages/shared" }
 
 [project.scripts]
 brasaland-api = "brasaland_api:main"

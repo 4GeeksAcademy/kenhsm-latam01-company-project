@@ -14,6 +14,7 @@ if (app) {
           ${operationalSnapshot.metrics.map((metric) => KpiCard(metric)).join("")}
         </section>
         ${ContextFact(operationalSnapshot.contextFact)}
+        ${incidentManagementMarkup()}
         <section class="analysis-panel" id="incident-analysis">
           <div class="section-heading">
             <div>
@@ -35,7 +36,80 @@ if (app) {
   `;
 
   document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
+  document.querySelector("#new-incident-form")?.addEventListener("submit", createIncident);
+  document.querySelector("#incident-filters")?.addEventListener("change", loadIncidents);
+  document.querySelector("#new-incident-form select[name=origin]")?.addEventListener("change", (event) => document.querySelector("#branch-field")?.classList.toggle("is-highlighted", event.target.value === "branch"));
+  loadIncidents();
 }
+
+const branchLabels = { central: "Central (Medellín / Miami)", medellin_centro: "Medellín Centro", medellin_laureles: "Medellín Laureles", medellin_envigado: "Medellín Envigado", medellin_bello: "Medellín Bello", medellin_itagui: "Medellín Itagüí", bogota_chapinero: "Bogotá Chapinero", bogota_usaquen: "Bogotá Usaquén", cali_granada: "Cali Granada", barranquilla_norte: "Barranquilla Norte", miami_doral: "Miami Doral", miami_hialeah: "Miami Hialeah", miami_kendall: "Miami Kendall", orlando_international: "Orlando International Drive", fort_lauderdale: "Fort Lauderdale" };
+const categoryLabels = { equipment_failure: "Equipamiento", supply_issue: "Abastecimiento", customer_complaint: "Queja de cliente", staff_issue: "Personal", facility_issue: "Instalaciones", pos_system: "TPV", delivery_issue: "Delivery", other: "Otra" };
+
+function incidentManagementMarkup() {
+  const branchOptions = Object.entries(branchLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+  return `<section class="incident-panel" id="incident-management">
+    <div class="section-heading"><div><p class="kicker">Operaciones en tiempo real</p><h2>Gestor de incidencias</h2></div><span id="incident-load-status" class="form-status" role="status"></span></div>
+    <form id="new-incident-form" class="incident-form">
+      <label>Título<input name="title" required maxlength="120" /></label>
+      <label>Descripción<textarea name="description" required rows="3"></textarea></label>
+      <label>Categoría<select name="category" required><option value="">Selecciona una categoría</option>${Object.entries(categoryLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></label>
+      <label>Estado<select name="status" required><option value="open">Abierta</option><option value="in_progress">En progreso</option><option value="resolved">Resuelta</option><option value="discarded">Descartada</option></select></label>
+      <label>Origen<select name="origin" required><option value="">Selecciona un origen</option><option value="customer">Cliente</option><option value="branch">Sede</option><option value="internal">Central</option></select></label>
+      <label id="branch-field">Sede<select name="branch" required><option value="">Selecciona una sede</option>${branchOptions}</select></label>
+      <button type="submit">Registrar incidencia</button><p id="incident-form-status" class="form-status" role="status"></p>
+    </form>
+    <div id="incident-summary" class="incident-summary" aria-live="polite"></div>
+    <div id="incident-filters" class="filters"><select name="status"><option value="">Todos los estados</option><option value="open">Abierta</option><option value="in_progress">En progreso</option><option value="resolved">Resuelta</option><option value="discarded">Descartada</option></select><select name="origin"><option value="">Todos los orígenes</option><option value="customer">Cliente</option><option value="branch">Sede</option><option value="internal">Central</option></select><select name="branch"><option value="">Todas las sedes</option>${branchOptions}</select></div>
+    <div id="incident-list" class="incident-list" aria-live="polite"></div>
+  </section>`;
+}
+
+async function createIncident(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  const status = document.querySelector("#incident-form-status");
+  button.disabled = true; status.textContent = "Registrando...";
+  try {
+    const payload = Object.fromEntries(new FormData(form));
+    const response = await fetch(`${apiBase}/api/incidents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await response.json();
+    if (!response.ok) throw new Error("No se pudo registrar la incidencia. Revisa los campos.");
+    form.reset(); status.textContent = "Incidencia registrada correctamente."; await loadIncidents();
+  } catch (error) { status.textContent = error.message; } finally { button.disabled = false; }
+}
+
+async function loadIncidents() {
+  const list = document.querySelector("#incident-list");
+  const filters = document.querySelector("#incident-filters");
+  if (!list || !filters) return;
+  list.innerHTML = "<p>Cargando incidencias...</p>";
+  const params = new URLSearchParams([...filters.querySelectorAll("select")].filter((select) => select.value).map((select) => [select.name, select.value]));
+  try {
+    const [incidentsResponse, summaryResponse] = await Promise.all([fetch(`${apiBase}/api/incidents?${params}`), fetch(`${apiBase}/api/incidents/summary`)]);
+    if (!incidentsResponse.ok || !summaryResponse.ok) throw new Error("No se pudieron cargar las incidencias.");
+    const incidents = await incidentsResponse.json(); renderIncidentList(incidents); renderIncidentSummary(await summaryResponse.json());
+  } catch (error) { list.innerHTML = `<p class="error-message">${error.message} <button type="button" id="retry-incidents">Reintentar</button></p>`; document.querySelector("#retry-incidents")?.addEventListener("click", loadIncidents); }
+}
+
+function renderIncidentList(incidents) {
+  const list = document.querySelector("#incident-list");
+  if (!incidents.length) { list.innerHTML = "<p>No hay incidencias que coincidan con los filtros.</p>"; return; }
+  list.innerHTML = incidents.map((incident) => `<article class="incident-row"><div><strong>${escapeHtml(incident.title)}</strong><p>${escapeHtml(incident.description)}</p><small>${categoryLabels[incident.category] || incident.category} · ${branchLabels[incident.branch] || incident.branch}</small></div><label>Estado<select data-incident-id="${incident.id}" data-previous-status="${incident.status}">${statusOptions(incident.status)}</select></label></article>`).join("");
+  list.querySelectorAll("select[data-incident-id]").forEach((select) => select.addEventListener("change", updateIncidentStatus));
+}
+
+function statusOptions(current) { return [["open", "Abierta"], ["in_progress", "En progreso"], ["resolved", "Resuelta"], ["discarded", "Descartada"]].map(([value, label]) => `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`).join(""); }
+async function updateIncidentStatus(event) {
+  const select = event.currentTarget; const previous = select.dataset.previousStatus;
+  try { const response = await fetch(`${apiBase}/api/incidents/${select.dataset.incidentId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: select.value }) }); if (!response.ok) throw new Error(); select.dataset.previousStatus = select.value; await loadIncidents(); }
+  catch { select.value = previous; document.querySelector("#incident-load-status").textContent = "No se pudo actualizar el estado."; }
+}
+function renderIncidentSummary(summary) {
+  const groups = [["Estado", summary.by_status], ["Categoría", summary.by_category], ["Origen", summary.by_origin], ["Sede", summary.by_branch]];
+  document.querySelector("#incident-summary").innerHTML = `<span>Total <strong>${summary.total}</strong></span>${groups.flatMap(([label, values]) => Object.entries(values).map(([key, value]) => `<span>${label}: ${categoryLabels[key] || branchLabels[key] || key} <strong>${value}</strong></span>`)).join("")}`;
+}
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character])); }
 
 async function analyzeIncidents(event) {
   event.preventDefault();
