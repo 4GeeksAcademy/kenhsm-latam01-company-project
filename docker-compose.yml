@@ -1,0 +1,42 @@
+services:
+  interfaces:
+    build:
+      context: ./uis
+      dockerfile: Dockerfile
+    environment:
+      BRASALAND_API_URL: ${BRASALAND_API_URL}
+    command: ["sh", "/app/uis/start.sh"]
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - ./uis:/app/uis
+      - interfaces_website_node_modules:/app/uis/website/node_modules
+      - interfaces_backoffice_node_modules:/app/uis/backoffice/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - brasaland-dev
+
+  backend:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: ["uvicorn", "brasaland_api.main:app", "--app-dir", "src", "--host", "0.0.0.0", "--port", "8010", "--reload"]
+    ports:
+      - "8010:8010"
+    volumes:
+      - ./services/brasaland-api:/app/services/brasaland-api
+    networks:
+      - brasaland-dev
+
+networks:
+  brasaland-dev:
+    name: brasaland-dev
+
+volumes:
+  interfaces_website_node_modules:
+  interfaces_backoffice_node_modules:

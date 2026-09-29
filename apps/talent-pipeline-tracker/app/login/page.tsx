@@ -69,12 +69,20 @@ function LoginForm() {
         </button>
       </form>
 
+      {searchParams.get("passwordReset") === "1" ? (
+        <p className="mt-3 text-sm text-emerald-700">Tu contraseña se actualizó. Ya puedes iniciar sesión.</p>
+      ) : null}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
 
       <p className="mt-4 text-sm text-zinc-600">
         ¿No tienes cuenta?{" "}
         <Link href="/register" className="font-medium text-amber-700 hover:underline">
           Regístrate
+        </Link>
+      </p>
+      <p className="mt-2 text-sm">
+        <Link href="/forgot-password" className="font-medium text-amber-700 hover:underline">
+          ¿Olvidaste tu contraseña?
         </Link>
       </p>
     </section>

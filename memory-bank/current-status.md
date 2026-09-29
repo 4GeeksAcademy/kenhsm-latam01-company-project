@@ -2,8 +2,10 @@
 
 ## Date
 
+2026-09-27
 2026-09-10
 
+2026-09-26
 ## Completed
 
 1. Created repository-level agent operating protocol in `AGENTS.md`.
@@ -15,6 +17,11 @@
 7. Added the `services/api` delivery entrypoint, delegating to the shared admin API implementation without duplicating analysis logic.
 8. Added `services/brasaland-api` (FastAPI + TinyDB + uv): JWT auth (`/auth/login`, `/auth/me`), `users` CRUD (`/users`), `profiles` (`/profiles/me`), and `get_current_user`/`require_admin` dependencies applied to all non-public routes, including 5 stub sensitive routes in `operations`, `supply_chain`, and `hr` modules (AUTH-01).
 9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting every route except `/login`/`/register`, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
+10. Applied the caching audit: Next.js interactive panels use `next/dynamic`, the candidate filtering uses dependency-scoped `useMemo`, and FastAPI has observable timing plus per-user TTL caches for sales and employees with employee-write invalidation. Decisions are documented in `CACHING_REPORT.md`.
+10. Added centralized incident management to `services/brasaland-api` (`/api/incidents` CRUD, lifecycle transitions, filters, summary) with TinyDB persistence, shared validation in `packages/shared`, and an idempotent `scripts/seed_incidents.py`.
+11. Extended `uis/backoffice` with incident registration, filters, status updates, loading/error/empty states, and summary metrics.
+
+
 
 ## Active Conventions
 
@@ -27,6 +34,10 @@
 1. Add persistent result storage for production API deployments.
 2. Add monorepo-level scripts for lint/test/build per interface/service.
 3. Expand skill catalog for PR review and architecture decision logging.
+
+## Telemetry Plan Decision
+
+The telemetry design lives in `docs/telemetry/telemetry-plan.md` and `docs/telemetry/event-schemas.json`. The registry covers six context-mandated inventory events plus opportunities across inventory validation, authentication, access, navigation, API health, incident analysis, purchasing, accounts, and background jobs. Current operations/inventory routes are stubs; only existing auth, purchase-request, user-account, and incident-analysis flows are candidates for immediate capture. Domain inventory events remain future instrumentation until persistent traceable orders exist. Event payloads are allowlisted, user identifiers are pseudonymized, and money remains in the location currency.
 
 ## Incident Analysis Decision
 
@@ -46,10 +57,9 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 1. `services/brasaland-api` had no CORS middleware, so every browser call from the Next.js app (different port/origin) was silently blocked. Fixed by adding `CORSMiddleware` with an allow-list (`CORS_ORIGINS` env var, defaults to `http://localhost:3000,http://127.0.0.1:3000`).
 2. `AuthGuard` redirected authenticated users to `/login` on a **hard reload** of a protected route: `useSyncExternalStore`'s first client render after hydration briefly reports the SSR snapshot (`null`), and the redirect effect fired on that stale value before the hook resynced. Fixed by re-checking `getStoredToken()` directly inside the redirect effect instead of trusting the transient hook value for the decision (the hook value is still used for the render-time content gate).
 3. Local dev testing must use `http://localhost:3000`, not `http://127.0.0.1:3000` — Next.js Turbopack dev blocks cross-origin HMR websocket requests from `127.0.0.1` by default, which breaks client-side interactivity in that origin during `next dev`.
-<<<<<<< HEAD
 
-## Telemetry Capture Decision
 
-Added a temporary FastAPI batch receiver at `POST /telemetry/events` with strict envelope validation and no persistence, plus a browser `track()` service with 10-second/20-event batching, beacon flush, retries, and client allowlists. The existing static backoffice emits section navigation, incident-analysis workflow/result, API latency/failure, and sanitized frontend-error events. Local telemetry uses port 8000; the incident-analysis API runs on 8001 to avoid a port collision. Inventory and auth UI flows do not exist in the current backoffice/API, so their events are not synthesized from unrelated actions and cannot yet be emitted truthfully.
-=======
->>>>>>> origin/main
+## AUTH-03 Decision
+
+Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
+

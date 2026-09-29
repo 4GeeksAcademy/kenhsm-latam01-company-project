@@ -1,0 +1,8 @@
+{
+  "name": "brasaland-backoffice-static",
+  "private": true,
+  "scripts": {
+    "dev": "PORT=3001 STATIC_DIR=backoffice node ../dev-server.js"
+  },
+  "dependencies": {}
+}
