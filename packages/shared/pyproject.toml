@@ -1,0 +1,9 @@
+[project]
+name = "brasaland-shared"
+version = "0.1.0"
+description = "Shared Brasaland incident validation and transformations"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["uv_build>=0.12.16,<0.13.0"]
+build-backend = "uv_build"

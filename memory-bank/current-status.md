@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-09-27
+2026-09-26
 
 ## Completed
 
@@ -15,7 +15,9 @@
 7. Added the `services/api` delivery entrypoint, delegating to the shared admin API implementation without duplicating analysis logic.
 8. Added `services/brasaland-api` (FastAPI + TinyDB + uv): JWT auth (`/auth/login`, `/auth/me`), `users` CRUD (`/users`), `profiles` (`/profiles/me`), and `get_current_user`/`require_admin` dependencies applied to all non-public routes, including 5 stub sensitive routes in `operations`, `supply_chain`, and `hr` modules (AUTH-01).
 9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting every route except `/login`/`/register`, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
-10. Audited `uis/website` and `uis/backoffice`: added page metadata, removed the favicon 404, and extracted the shared DOM mounting helper at `uis/shared/dom.js`. Lighthouse execution is documented as blocked by missing Chromium system libraries in the container.
+10. Added centralized incident management to `services/brasaland-api` (`/api/incidents` CRUD, lifecycle transitions, filters, summary) with TinyDB persistence, shared validation in `packages/shared`, and an idempotent `scripts/seed_incidents.py`.
+11. Extended `uis/backoffice` with incident registration, filters, status updates, loading/error/empty states, and summary metrics.
+
 
 ## Active Conventions
 
@@ -47,3 +49,7 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 1. `services/brasaland-api` had no CORS middleware, so every browser call from the Next.js app (different port/origin) was silently blocked. Fixed by adding `CORSMiddleware` with an allow-list (`CORS_ORIGINS` env var, defaults to `http://localhost:3000,http://127.0.0.1:3000`).
 2. `AuthGuard` redirected authenticated users to `/login` on a **hard reload** of a protected route: `useSyncExternalStore`'s first client render after hydration briefly reports the SSR snapshot (`null`), and the redirect effect fired on that stale value before the hook resynced. Fixed by re-checking `getStoredToken()` directly inside the redirect effect instead of trusting the transient hook value for the decision (the hook value is still used for the render-time content gate).
 3. Local dev testing must use `http://localhost:3000`, not `http://127.0.0.1:3000` — Next.js Turbopack dev blocks cross-origin HMR websocket requests from `127.0.0.1` by default, which breaks client-side interactivity in that origin during `next dev`.
+
+## AUTH-03 Decision
+
+Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.

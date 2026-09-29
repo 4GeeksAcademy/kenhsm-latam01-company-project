@@ -63,6 +63,15 @@ def update_user(user_id: str, *, email: str | None = None, role: UserRole | None
     return get_user_by_id(user_id)
 
 
+def update_password(user_id: str, hashed_password: str) -> bool:
+    table = users_table()
+    query = Query().id == user_id
+    if table.get(query) is None:
+        return False
+    table.update({"hashed_password": hashed_password}, query)
+    return True
+
+
 def delete_user(user_id: str) -> bool:
     table = users_table()
     query = Query().id == user_id
