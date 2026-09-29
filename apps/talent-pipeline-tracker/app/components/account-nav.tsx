@@ -28,6 +28,9 @@ export default function AccountNav() {
       <Link href="/account/profile" className="text-xs font-semibold text-amber-800 hover:underline">
         Mi cuenta
       </Link>
+      <Link href="/account/change-password" className="text-xs font-semibold text-amber-800 hover:underline">
+        Cambiar contraseña
+      </Link>
       <button
         type="button"
         onClick={handleLogout}

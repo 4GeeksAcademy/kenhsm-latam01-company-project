@@ -29,3 +29,10 @@ class UserOut(BaseModel):
     is_active: bool
     role: UserRole
     created_at: datetime
+
+
+class UserRegistrationOut(BaseModel):
+    id: str
+    is_active: bool
+    role: UserRole
+    created_at: datetime

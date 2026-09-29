@@ -7,6 +7,7 @@
 3. Existe `memory-bank/` con contexto de negocio, tecnico, reglas y estado operativo.
 4. Existen interfaces iniciales visibles en `uis/website` y `uis/backoffice`.
 5. Existe `services/brasaland-api` (FastAPI + TinyDB + uv) con autenticacion JWT, CRUD de `users`, `profiles`, y proteccion de rutas sensibles (AUTH-01).
+6. AUTH-03 implementado en backend y frontend: recuperacion por email con Resend, tokens persistidos de un solo uso, y cambio autenticado de contraseña; suite backend y build/lint frontend verificados.
 
 ## Proximos pasos previstos
 
