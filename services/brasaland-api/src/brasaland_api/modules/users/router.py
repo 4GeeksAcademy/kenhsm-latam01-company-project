@@ -8,13 +8,13 @@ from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.profiles import services as profile_services
 from brasaland_api.modules.users import services as user_services
 from brasaland_api.modules.users.models import UserRecord, UserRole
-from brasaland_api.modules.users.schemas import UserCreate, UserOut, UserUpdate
+from brasaland_api.modules.users.schemas import UserCreate, UserOut, UserRegistrationOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register_user(payload: UserCreate) -> UserOut:
+@router.post("", response_model=UserRegistrationOut, status_code=status.HTTP_201_CREATED)
+def register_user(payload: UserCreate) -> UserRegistrationOut:
     try:
         user = user_services.create_user(payload.email, payload.password, role=UserRole.USER)
     except ValueError as error:
@@ -23,7 +23,7 @@ def register_user(payload: UserCreate) -> UserOut:
     profile_services.create_profile(
         user.id, name=payload.name, phone=payload.phone, address=payload.address
     )
-    return UserOut(id=user.id, email=user.email, is_active=user.is_active, role=user.role, created_at=user.created_at)
+    return UserRegistrationOut(id=user.id, is_active=user.is_active, role=user.role, created_at=user.created_at)
 
 
 @router.get("", response_model=list[UserOut])
@@ -65,7 +65,7 @@ def update_user(
     )
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: str, current_user: UserRecord = Depends(get_current_user)) -> None:
     if current_user.id != user_id and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes eliminar este usuario.")
