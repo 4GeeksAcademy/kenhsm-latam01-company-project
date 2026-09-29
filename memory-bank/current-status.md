@@ -58,8 +58,14 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 2. `AuthGuard` redirected authenticated users to `/login` on a **hard reload** of a protected route: `useSyncExternalStore`'s first client render after hydration briefly reports the SSR snapshot (`null`), and the redirect effect fired on that stale value before the hook resynced. Fixed by re-checking `getStoredToken()` directly inside the redirect effect instead of trusting the transient hook value for the decision (the hook value is still used for the render-time content gate).
 3. Local dev testing must use `http://localhost:3000`, not `http://127.0.0.1:3000` — Next.js Turbopack dev blocks cross-origin HMR websocket requests from `127.0.0.1` by default, which breaks client-side interactivity in that origin during `next dev`.
 
+## Telemetry Storage Decision
+
+Added per-event validation for `POST /telemetry/events`, a property allowlist matching the approved registry, and one bulk PostgREST insert per non-empty valid batch. The migration creates `telemetry_events`, the three analytical indexes, and insert-only privileges for `service_role`; rows store only validated `properties` in `tags`. This branch has no Supabase URL/service-role credentials, so the migration has not been applied remotely and live persistence remains pending local/deployment configuration. The frontend was not changed.
+
+
 
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
+
 

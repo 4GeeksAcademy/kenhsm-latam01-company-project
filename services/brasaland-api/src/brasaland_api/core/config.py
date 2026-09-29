@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +19,8 @@ class Settings(BaseSettings):
     password_reset_token_expire_minutes: int = Field(default=30, ge=15, le=60)
 
     tinydb_path: str = "data/db.json"
+    supabase_url: str | None = None
+    supabase_service_role_key: SecretStr | None = None
     telemetry_endpoint: str = "http://localhost:8000/telemetry/events"
 
     # Comma-separated allow-list of origins permitted to call this API from a browser.
