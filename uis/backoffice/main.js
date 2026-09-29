@@ -2,7 +2,7 @@ import { operationalSnapshot } from "./data.js";
 import { Sidebar, DashboardHeader, KpiCard, ContextFact } from "./components.js";
 
 const app = document.querySelector("#app");
-const apiBase = window.BRASALAND_API_URL || "http://127.0.0.1:8000";
+const apiBase = window.BRASALAND_API_URL || "";
 
 if (app) {
   app.innerHTML = `
