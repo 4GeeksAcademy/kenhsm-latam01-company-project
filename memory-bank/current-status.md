@@ -14,8 +14,10 @@
 6. Added the reusable Brasaland incident analyzer, CLI export, admin API endpoints and backoffice upload view.
 7. Added the `services/api` delivery entrypoint, delegating to the shared admin API implementation without duplicating analysis logic.
 8. Added `services/brasaland-api` (FastAPI + TinyDB + uv): JWT auth (`/auth/login`, `/auth/me`), `users` CRUD (`/users`), `profiles` (`/profiles/me`), and `get_current_user`/`require_admin` dependencies applied to all non-public routes, including 5 stub sensitive routes in `operations`, `supply_chain`, and `hr` modules (AUTH-01).
-9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting private routes, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
-10. Implemented AUTH-03 password recovery and change flows across `services/brasaland-api` and `apps/talent-pipeline-tracker`, including Resend email delivery, one-time reset tokens, public recovery forms, and authenticated password change.
+9. Added frontend auth flows to `apps/talent-pipeline-tracker` (protected app, developer-authorized edit): `/login`, `/register`, `/account` pages, a client-side `AuthGuard` protecting every route except `/login`/`/register`, and header login/logout controls — all backed by `services/brasaland-api` via `services/auth.ts` (AUTH-02).
+10. Added centralized incident management to `services/brasaland-api` (`/api/incidents` CRUD, lifecycle transitions, filters, summary) with TinyDB persistence, shared validation in `packages/shared`, and an idempotent `scripts/seed_incidents.py`.
+11. Extended `uis/backoffice` with incident registration, filters, status updates, loading/error/empty states, and summary metrics.
+
 
 ## Active Conventions
 
