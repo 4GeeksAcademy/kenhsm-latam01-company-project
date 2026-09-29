@@ -2,10 +2,13 @@ import { AUTH_API_URL } from "@/lib/auth";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import {
   CurrentUser,
+  AuthMessage,
+  ChangePasswordPayload,
   LoginPayload,
   ProfileOut,
   ProfileUpdatePayload,
   RegisterPayload,
+  ResetPasswordPayload,
   TokenResponse,
 } from "@/types/auth";
 
@@ -75,4 +78,34 @@ export async function updateMyProfile(payload: ProfileUpdatePayload): Promise<Pr
   });
 
   return parseAuthResponse<ProfileOut>(response, "No se pudo actualizar el perfil.");
+}
+
+export async function requestPasswordReset(email: string): Promise<AuthMessage> {
+  const response = await fetch(`${AUTH_API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  return parseAuthResponse<AuthMessage>(response, "No se pudo enviar la solicitud.");
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<AuthMessage> {
+  const response = await fetch(`${AUTH_API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return parseAuthResponse<AuthMessage>(response, "El enlace es inválido o ha expirado.");
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<AuthMessage> {
+  const response = await authenticatedFetch(`${AUTH_API_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return parseAuthResponse<AuthMessage>(response, "No se pudo actualizar la contraseña.");
 }

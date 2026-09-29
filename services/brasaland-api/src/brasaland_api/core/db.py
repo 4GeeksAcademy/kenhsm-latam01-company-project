@@ -32,3 +32,5 @@ def profiles_table():
 
 def incidents_table():
     return get_db().table("incidents")
+def password_reset_tokens_table():
+    return get_db().table("password_reset_tokens")
