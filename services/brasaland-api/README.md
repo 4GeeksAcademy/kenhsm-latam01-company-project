@@ -26,6 +26,10 @@ src/brasaland_api/
     ├── profiles/             # /profiles/me (display name + contact data)
     ├── operations/           # /operations/sales, /operations/inventory (protected)
     ├── supply_chain/         # /supply-chain/suppliers, /supply-chain/purchase-orders (protected)
+<<<<<<< HEAD
+    ├── telemetry/            # POST /telemetry/events (temporary batch receiver)
+=======
+>>>>>>> origin/main
     └── hr/                   # /hr/employees (protected)
 ```
 
@@ -42,7 +46,11 @@ uv sync
 ## Run
 
 ```bash
+<<<<<<< HEAD
+uv run uvicorn brasaland_api.main:app --app-dir src --reload --port 8000
+=======
 uv run uvicorn brasaland_api.main:app --app-dir src --reload --port 8010
+>>>>>>> origin/main
 ```
 
 Interactive docs: http://127.0.0.1:8010/docs
@@ -66,6 +74,10 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `JWT_ALGORITHM` | Signing algorithm (default `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
+<<<<<<< HEAD
+| `TELEMETRY_ENDPOINT` | Configured telemetry receiver URL (default `http://localhost:8000/telemetry/events`; reserved for the next pipeline phase). |
+=======
+>>>>>>> origin/main
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
 | `RESEND_API_KEY` | Resend API key used to deliver password-reset emails. Required for delivery; never commit the value. |
 | `RESEND_FROM_EMAIL` | Verified sender address configured in Resend (default `onboarding@resend.dev` for testing). |

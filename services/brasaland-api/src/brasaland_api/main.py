@@ -19,6 +19,7 @@ from brasaland_api.modules.hr.router import router as hr_router
 from brasaland_api.modules.operations.router import router as operations_router
 from brasaland_api.modules.profiles.router import router as profiles_router
 from brasaland_api.modules.supply_chain.router import router as supply_chain_router
+from brasaland_api.modules.telemetry.router import router as telemetry_router
 from brasaland_api.modules.users.router import router as users_router
 from brasaland_api.modules.incidents.router import router as incidents_router
 
@@ -71,7 +72,7 @@ app.include_router(profiles_router)
 app.include_router(operations_router)
 app.include_router(supply_chain_router)
 app.include_router(hr_router)
-app.include_router(incidents_router)
+app.include_router(telemetry_router)
 
 
 @app.get("/health", response_model=HealthOut, tags=["health"])

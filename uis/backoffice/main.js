@@ -1,9 +1,20 @@
 import { operationalSnapshot } from "./data.js";
 import { Sidebar, DashboardHeader, KpiCard, ContextFact } from "./components.js";
-import { mountApp } from "../shared/dom.js";
+
+import { loadPublicConfig } from "./runtime-config.mjs";
+import { track } from "./src/services/telemetry.mjs";
 
 const app = document.querySelector("#app");
-const apiBase = window.BRASALAND_API_URL || "";
+const runtimeConfig = await loadPublicConfig();
+const apiBase = runtimeConfig.NEXT_PUBLIC_ADMIN_API_ENDPOINT || window.BRASALAND_API_URL || "http://127.0.0.1:8001";
+let activeWorkflow = null;
+let abandonmentTimer = null;
+
+import { mountApp } from "../shared/dom.js";
+
+
+
+
 
 mountApp("#app", () => `
     <div class="layout">
@@ -36,6 +47,96 @@ mountApp("#app", () => `
   `);
 
   document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
+  document.querySelector("#incident-file")?.addEventListener("change", startIncidentWorkflow);
+  app.addEventListener("click", trackNavigation);
+  track("section_viewed", { section_id: "operations", client_area: "backoffice", navigation_source: "unknown" });
+}
+
+window.addEventListener("error", (event) => {
+  trackFrontendError(event.error?.name || "Error", "error");
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  trackFrontendError(event.reason?.name || typeof event.reason, "error");
+});
+
+window.addEventListener("pagehide", () => {
+  abandonIncidentWorkflow("route_exit");
+});
+
+function trackNavigation(event) {
+  const link = event.target.closest("nav a");
+  if (!link) return;
+  const sectionId = link.getAttribute("href") === "#incident-analysis"
+    ? "incident_analysis"
+    : link.textContent.trim() === "Operaciones" ? "operations" : null;
+  if (!sectionId) return;
+  track("section_viewed", { section_id: sectionId, client_area: "backoffice", navigation_source: "menu" });
+}
+
+function startIncidentWorkflow(event) {
+  const file = event.currentTarget.files[0];
+  if (!file || activeWorkflow) return;
+  activeWorkflow = { id: createUuid(), startedAt: Date.now(), fileSizeBytes: file.size, step: "file_selected" };
+  track("workflow_started", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    entry_source: "menu",
+  });
+  clearTimeout(abandonmentTimer);
+  abandonmentTimer = setTimeout(() => abandonIncidentWorkflow("inactive_timeout"), 30 * 60 * 1000);
+}
+
+function completeIncidentWorkflow() {
+  if (!activeWorkflow) return;
+  track("workflow_completed", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    elapsed_seconds: Math.floor((Date.now() - activeWorkflow.startedAt) / 1000),
+  });
+  activeWorkflow = null;
+  clearTimeout(abandonmentTimer);
+}
+
+function abandonIncidentWorkflow(completionState) {
+  if (!activeWorkflow) return;
+  track("workflow_abandoned", {
+    workflow_id: "incident_analysis",
+    workflow_instance_id: activeWorkflow.id,
+    last_completed_step: activeWorkflow.step,
+    elapsed_seconds: Math.floor((Date.now() - activeWorkflow.startedAt) / 1000),
+    completion_state: completionState,
+  });
+  activeWorkflow = null;
+  clearTimeout(abandonmentTimer);
+}
+
+function trackFrontendError(errorName, severity) {
+  track("frontend_error_captured", {
+    error_fingerprint: fingerprintError(errorName),
+    component_area: "shared",
+    severity,
+    release: "backoffice-static-v1",
+    occurrence_count_bucket: "1",
+  });
+}
+
+function fingerprintError(errorName) {
+  let first = 2166136261;
+  let second = 0x9e3779b9;
+  for (const character of String(errorName)) {
+    first = Math.imul(first ^ character.charCodeAt(0), 16777619);
+    second = Math.imul(second ^ character.charCodeAt(0), 2246822519);
+  }
+  return `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function createUuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
   document.querySelector("#new-incident-form")?.addEventListener("submit", createIncident);
   document.querySelector("#incident-filters")?.addEventListener("change", loadIncidents);
   document.querySelector("#new-incident-form select[name=origin]")?.addEventListener("change", (event) => document.querySelector("#branch-field")?.classList.toggle("is-highlighted", event.target.value === "branch"));
@@ -120,26 +221,108 @@ async function analyzeIncidents(event) {
   const download = document.querySelector("#download-results");
   const file = fileInput.files[0];
   if (!file) return;
+  if (!activeWorkflow) startIncidentWorkflow({ currentTarget: fileInput });
+  activeWorkflow.step = "submit";
+  clearTimeout(abandonmentTimer);
+  abandonmentTimer = setTimeout(() => abandonIncidentWorkflow("inactive_timeout"), 30 * 60 * 1000);
 
   status.textContent = "Analizando...";
   result.innerHTML = "";
   download.classList.add("is-disabled");
   download.setAttribute("aria-disabled", "true");
+  const requestId = createUuid();
+  const requestStartedAt = performance.now();
+  window.__BRASALAND_ACTIVE_REQUEST_ID__ = requestId;
+  let response;
+  let failureTracked = false;
   try {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(`${apiBase}/api/incidents/analyze`, { method: "POST", body: formData });
+    response = await fetch(`${apiBase}/api/incidents/analyze`, {
+      method: "POST",
+      body: formData,
+      headers: { "X-Request-ID": requestId },
+    });
+    const durationMs = performance.now() - requestStartedAt;
+    track("api_latency_recorded", {
+      route_template: "/api/incidents/analyze",
+      http_method: "POST",
+      status_code: response.status,
+      duration_ms: durationMs,
+      sample_rate: 1,
+      service_name: "incident-analysis-api",
+    });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "No se pudo analizar el fichero.");
+    if (!response.ok) {
+      trackApiFailure(response.status);
+      trackIncidentFailure(response.status, file.size, durationMs);
+      failureTracked = true;
+      throw new Error(payload.error || "No se pudo analizar el fichero.");
+    }
     status.textContent = "Análisis completado.";
     result.innerHTML = renderAnalysis(payload);
     download.href = `${apiBase}/api/incidents/results/export`;
     download.classList.remove("is-disabled");
     download.removeAttribute("aria-disabled");
+    track("incident_analysis_completed", {
+      total_records: payload.total_records,
+      valid_records: payload.valid_records,
+      invalid_records: payload.invalid_records,
+      duration_ms: durationMs,
+      file_size_bytes: file.size,
+    });
+    completeIncidentWorkflow();
   } catch (error) {
+    if (!failureTracked) {
+      const durationMs = performance.now() - requestStartedAt;
+      if (!response) {
+        track("api_latency_recorded", {
+          route_template: "/api/incidents/analyze",
+          http_method: "POST",
+          status_code: 503,
+          duration_ms: durationMs,
+          sample_rate: 1,
+          service_name: "incident-analysis-api",
+        });
+        trackApiFailure(503);
+      }
+      trackIncidentFailure(response?.status || 0, file.size, durationMs);
+    }
     status.textContent = error.message;
     result.innerHTML = "";
+  } finally {
+    delete window.__BRASALAND_ACTIVE_REQUEST_ID__;
   }
+}
+
+function trackApiFailure(statusCode) {
+  const code = statusCode === 401 ? "unauthorized"
+    : statusCode === 403 ? "forbidden"
+      : statusCode === 404 ? "not_found"
+        : statusCode === 429 ? "rate_limited"
+          : statusCode >= 500 ? "server_error"
+            : statusCode >= 400 ? "validation_error" : "dependency_error";
+  track("api_request_failed", {
+    route_template: "/api/incidents/analyze",
+    http_method: "POST",
+    status_code: statusCode >= 400 ? statusCode : 503,
+    error_code: code,
+    retryable: statusCode === 0 || statusCode === 429 || statusCode >= 500,
+    service_name: "incident-analysis-api",
+  });
+}
+
+function trackIncidentFailure(statusCode, fileSizeBytes, durationMs) {
+  const isValidation = statusCode >= 400 && statusCode < 500;
+  track("incident_analysis_failed", {
+    failure_stage: statusCode === 0 || statusCode >= 500 ? "dependency" : isValidation ? "validation" : "analysis",
+    error_code: statusCode === 415 ? "unsupported_file"
+      : statusCode === 413 ? "file_too_large"
+        : statusCode === 400 ? "malformed_csv"
+          : statusCode === 0 || statusCode >= 500 ? "analysis_unavailable" : "internal_error",
+    file_size_bytes: fileSizeBytes,
+    duration_ms: durationMs,
+  });
 }
 
 function renderAnalysis(data) {
