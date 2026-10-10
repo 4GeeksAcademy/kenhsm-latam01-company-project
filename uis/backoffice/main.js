@@ -7,14 +7,12 @@ import { track } from "./src/services/telemetry.mjs";
 const app = document.querySelector("#app");
 const runtimeConfig = await loadPublicConfig();
 const apiBase = runtimeConfig.NEXT_PUBLIC_ADMIN_API_ENDPOINT || window.BRASALAND_API_URL || "http://127.0.0.1:8001";
+const branchLabels = { central: "Central (Medellín / Miami)", medellin_centro: "Medellín Centro", medellin_laureles: "Medellín Laureles", medellin_envigado: "Medellín Envigado", medellin_bello: "Medellín Bello", medellin_itagui: "Medellín Itagüí", bogota_chapinero: "Bogotá Chapinero", bogota_usaquen: "Bogotá Usaquén", cali_granada: "Cali Granada", barranquilla_norte: "Barranquilla Norte", miami_doral: "Miami Doral", miami_hialeah: "Miami Hialeah", miami_kendall: "Miami Kendall", orlando_international: "Orlando International Drive", fort_lauderdale: "Fort Lauderdale" };
+const categoryLabels = { equipment_failure: "Equipamiento", supply_issue: "Abastecimiento", customer_complaint: "Queja de cliente", staff_issue: "Personal", facility_issue: "Instalaciones", pos_system: "TPV", delivery_issue: "Delivery", other: "Otra" };
 let activeWorkflow = null;
 let abandonmentTimer = null;
 
 import { mountApp } from "../shared/dom.js";
-
-
-
-
 
 mountApp("#app", () => `
     <div class="layout">
@@ -46,11 +44,10 @@ mountApp("#app", () => `
     </div>
   `);
 
-  document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
-  document.querySelector("#incident-file")?.addEventListener("change", startIncidentWorkflow);
-  app.addEventListener("click", trackNavigation);
-  track("section_viewed", { section_id: "operations", client_area: "backoffice", navigation_source: "unknown" });
-}
+document.querySelector("#incident-form")?.addEventListener("submit", analyzeIncidents);
+document.querySelector("#incident-file")?.addEventListener("change", startIncidentWorkflow);
+app.addEventListener("click", trackNavigation);
+track("section_viewed", { section_id: "operations", client_area: "backoffice", navigation_source: "unknown" });
 
 window.addEventListener("error", (event) => {
   trackFrontendError(event.error?.name || "Error", "error");
@@ -137,14 +134,7 @@ function createUuid() {
     const random = Math.floor(Math.random() * 16);
     return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
   });
-  document.querySelector("#new-incident-form")?.addEventListener("submit", createIncident);
-  document.querySelector("#incident-filters")?.addEventListener("change", loadIncidents);
-  document.querySelector("#new-incident-form select[name=origin]")?.addEventListener("change", (event) => document.querySelector("#branch-field")?.classList.toggle("is-highlighted", event.target.value === "branch"));
-  loadIncidents();
 }
-
-const branchLabels = { central: "Central (Medellín / Miami)", medellin_centro: "Medellín Centro", medellin_laureles: "Medellín Laureles", medellin_envigado: "Medellín Envigado", medellin_bello: "Medellín Bello", medellin_itagui: "Medellín Itagüí", bogota_chapinero: "Bogotá Chapinero", bogota_usaquen: "Bogotá Usaquén", cali_granada: "Cali Granada", barranquilla_norte: "Barranquilla Norte", miami_doral: "Miami Doral", miami_hialeah: "Miami Hialeah", miami_kendall: "Miami Kendall", orlando_international: "Orlando International Drive", fort_lauderdale: "Fort Lauderdale" };
-const categoryLabels = { equipment_failure: "Equipamiento", supply_issue: "Abastecimiento", customer_complaint: "Queja de cliente", staff_issue: "Personal", facility_issue: "Instalaciones", pos_system: "TPV", delivery_issue: "Delivery", other: "Otra" };
 
 function incidentManagementMarkup() {
   const branchOptions = Object.entries(branchLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");

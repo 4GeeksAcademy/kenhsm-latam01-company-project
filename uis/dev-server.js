@@ -8,6 +8,28 @@ const staticRoot = path.resolve(__dirname, process.env.STATIC_DIR || "website");
 const sharedRoot = path.resolve(__dirname, "shared");
 const backendUrl = new URL(process.env.BACKEND_URL || "http://backend:8010");
 
+function getContentType(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+
+  const mimeTypes = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".ico": "image/x-icon",
+    ".webp": "image/webp",
+    ".wasm": "application/wasm",
+  };
+
+  return mimeTypes[extension] || "application/octet-stream";
+}
+
 function proxy(request, response) {
   const upstream = http.request(
     { hostname: backendUrl.hostname, port: backendUrl.port, method: request.method, path: request.url, headers: request.headers },
@@ -42,15 +64,23 @@ function serveStatic(request, response) {
       response.end("No encontrado.");
       return;
     }
-    response.writeHead(200);
+    response.writeHead(200, { "Content-Type": getContentType(filePath) });
     fs.createReadStream(filePath).pipe(response);
   });
 }
 
-http.createServer((request, response) => {
-  if (request.url.startsWith("/api") || request.url === "/health") {
-    proxy(request, response);
-    return;
-  }
-  serveStatic(request, response);
-}).listen(port, "0.0.0.0", () => console.log(`Serving ${staticRoot} on ${port}; backend proxy: ${backendUrl.host}`));
+function createServer() {
+  return http.createServer((request, response) => {
+    if (request.url.startsWith("/api") || request.url === "/health") {
+      proxy(request, response);
+      return;
+    }
+    serveStatic(request, response);
+  });
+}
+
+if (require.main === module) {
+  createServer().listen(port, "0.0.0.0", () => console.log(`Serving ${staticRoot} on ${port}; backend proxy: ${backendUrl.host}`));
+}
+
+module.exports = { getContentType, createServer };
