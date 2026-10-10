@@ -64,6 +64,32 @@ def test_batch_with_no_valid_events_does_not_call_storage() -> None:
 def test_batch_requires_events_array() -> None:
     response = client.post("/telemetry/events", json={"events": {"event_type": "section_viewed"}})
     assert response.status_code == 422
+
+
+def test_stock_waste_requires_nonnegative_numeric_unit_cost() -> None:
+    properties = {
+        "location_id": "COL-01",
+        "country": "CO",
+        "product_id": "PROD-01",
+        "product_category": "protein",
+        "quantity": 2,
+        "unit": "kg",
+        "currency": "COP",
+        "unit_cost": 12000,
+        "reason": "expired",
+        "outbound_order_id": "OUT-1001",
+    }
+    event = make_event(properties)
+    event["event_type"] = "stock_waste_registered"
+
+    with patch("brasaland_api.modules.telemetry.router.insert_events", return_value=1) as insert:
+        accepted = client.post("/telemetry/events", json={"events": [event]})
+        event["properties"]["unit_cost"] = -1
+        rejected = client.post("/telemetry/events", json={"events": [event]})
+
+    assert accepted.json() == {"received": 1, "stored": 1, "rejected": 0}
+    assert rejected.json() == {"received": 1, "stored": 0, "rejected": 1}
+    assert insert.call_count == 1
       
       
 def test_telemetry_endpoint_accepts_enveloped_batches(caplog) -> None:

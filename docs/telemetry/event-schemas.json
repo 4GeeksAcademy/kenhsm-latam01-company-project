@@ -465,6 +465,11 @@
             "currency": {
               "$ref": "#/definitions/currency"
             },
+            "unit_cost": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Cost per wasted product unit in the location currency; total waste cost is quantity multiplied by unit_cost."
+            },
             "reason": {
               "type": "string",
               "enum": [
@@ -488,6 +493,7 @@
             "quantity",
             "unit",
             "currency",
+            "unit_cost",
             "reason",
             "outbound_order_id"
           ]

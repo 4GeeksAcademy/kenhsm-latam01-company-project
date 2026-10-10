@@ -24,7 +24,7 @@ EVENT_PROPERTY_CONTRACTS = {
         "location_id country product_id product_category quantity unit currency reason outbound_order_id"
     ),
     "stock_waste_registered": _contract(
-        "location_id country product_id product_category quantity unit currency reason outbound_order_id"
+        "location_id country product_id product_category quantity unit currency unit_cost reason outbound_order_id"
     ),
     "stock_threshold_triggered": _contract(
         "location_id country product_id product_category quantity unit currency minimum_quantity threshold_version"
@@ -76,4 +76,11 @@ def properties_match_contract(event_type: str, properties: dict[str, object]) ->
     if contract is None:
         return False
     keys = set(properties)
-    return contract.required.issubset(keys) and keys.issubset(contract.allowed)
+    if not contract.required.issubset(keys) or not keys.issubset(contract.allowed):
+        return False
+
+    if event_type == "stock_waste_registered":
+        unit_cost = properties.get("unit_cost")
+        return isinstance(unit_cost, (int, float)) and not isinstance(unit_cost, bool) and unit_cost >= 0
+
+    return True

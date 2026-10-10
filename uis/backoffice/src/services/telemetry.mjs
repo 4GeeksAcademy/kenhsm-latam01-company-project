@@ -18,8 +18,8 @@ const EVENT_ALLOWLISTS = {
     allowed: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "reason", "outbound_order_id"],
   },
   stock_waste_registered: {
-    required: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "reason", "outbound_order_id"],
-    allowed: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "reason", "outbound_order_id"],
+    required: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "unit_cost", "reason", "outbound_order_id"],
+    allowed: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "unit_cost", "reason", "outbound_order_id"],
   },
   stock_threshold_triggered: {
     required: ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "minimum_quantity", "threshold_version"],
@@ -76,7 +76,7 @@ let flushInProgress = false;
 
 export function track(eventType, properties) {
   const allowlist = EVENT_ALLOWLISTS[eventType];
-  if (!allowlist || !isAllowedProperties(properties, allowlist)) return;
+  if (!allowlist || !isAllowedProperties(eventType, properties, allowlist)) return;
 
   queue.push({
     eventId: createUuid(),
@@ -93,11 +93,18 @@ export function track(eventType, properties) {
   if (typeof document !== "undefined" && document.visibilityState === "hidden") void flushWithBeacon();
 }
 
-function isAllowedProperties(properties, allowlist) {
+function isAllowedProperties(eventType, properties, allowlist) {
   if (!properties || typeof properties !== "object" || Array.isArray(properties)) return false;
   const keys = Object.keys(properties);
-  return keys.every((key) => allowlist.allowed.includes(key))
-    && allowlist.required.every((key) => Object.hasOwn(properties, key));
+  if (!keys.every((key) => allowlist.allowed.includes(key))
+    || !allowlist.required.every((key) => Object.hasOwn(properties, key))) return false;
+
+  if (eventType === "stock_waste_registered") {
+    const unitCost = properties.unit_cost;
+    return typeof unitCost === "number" && Number.isFinite(unitCost) && unitCost >= 0;
+  }
+
+  return true;
 }
 
 function createUuid() {
