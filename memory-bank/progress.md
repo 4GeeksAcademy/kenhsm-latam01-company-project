@@ -8,6 +8,7 @@
 4. Existen interfaces iniciales visibles en `uis/website` y `uis/backoffice`.
 5. Existe `services/brasaland-api` (FastAPI + TinyDB + uv) con autenticacion JWT, CRUD de `users`, `profiles`, y proteccion de rutas sensibles (AUTH-01).
 6. AUTH-03 implementado en backend y frontend: recuperacion por email con Resend, tokens persistidos de un solo uso, y cambio autenticado de contraseña; suite backend y build/lint frontend verificados.
+7. Implemented the weekly Prefect business KPI pipeline, reporting schema migration, and JWT-protected reporting endpoints; local CLI and focused data/API tests pass. Production Supabase configuration and telemetry-source completeness remain deployment prerequisites.
 
 ## Proximos pasos previstos
 

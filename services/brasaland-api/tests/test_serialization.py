@@ -5,7 +5,7 @@ def test_every_api_route_declares_a_response_model():
     paths = app.openapi()["paths"]
     operations = [operation for methods in paths.values() for operation in methods.values()]
 
-    assert len(operations) == 16
+    assert len(operations) == 23
     assert all(operation["responses"] for operation in operations)
     assert all(
         "content" in response

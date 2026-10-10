@@ -1,0 +1,156 @@
+[
+  {
+    "location_id": "COL-01",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-02",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-03",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-04",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-05",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-06",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-07",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-08",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-09",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "COL-10",
+    "country": "CO",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "COP"
+  },
+  {
+    "location_id": "FLA-01",
+    "country": "US",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "USD"
+  },
+  {
+    "location_id": "FLA-02",
+    "country": "US",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "USD"
+  },
+  {
+    "location_id": "FLA-03",
+    "country": "US",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "USD"
+  },
+  {
+    "location_id": "FLA-04",
+    "country": "US",
+    "week_start": "2026-09-28",
+    "total_purchase_cost": 0,
+    "total_waste_cost": 0,
+    "waste_ratio": 0,
+    "stockout_events_count": 0,
+    "price_alert_events_count": 0,
+    "currency": "USD"
+  }
+]

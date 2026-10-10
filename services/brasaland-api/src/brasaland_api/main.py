@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import time
+from pathlib import Path
 
 
 from fastapi import FastAPI, Request
@@ -11,6 +14,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from brasaland_api.core.config import get_settings
 from brasaland_api.core.schemas import HealthOut
@@ -22,6 +29,16 @@ from brasaland_api.modules.supply_chain.router import router as supply_chain_rou
 from brasaland_api.modules.telemetry.router import router as telemetry_router
 from brasaland_api.modules.users.router import router as users_router
 from brasaland_api.modules.incidents.router import router as incidents_router
+from services.reporting.router import router as reporting_router
+
+settings = get_settings()
+if settings.supabase_url:
+    os.environ.setdefault("SUPABASE_URL", settings.supabase_url)
+if settings.supabase_service_role_key:
+    os.environ.setdefault(
+        "SUPABASE_SERVICE_ROLE_KEY",
+        settings.supabase_service_role_key.get_secret_value(),
+    )
 
 app = FastAPI(title="Brasaland API", version="0.1.0")
 timing_logger = logging.getLogger("api.timing")
@@ -73,6 +90,7 @@ app.include_router(operations_router)
 app.include_router(supply_chain_router)
 app.include_router(hr_router)
 app.include_router(telemetry_router)
+app.include_router(reporting_router)
 
 
 @app.get("/health", response_model=HealthOut, tags=["health"])
