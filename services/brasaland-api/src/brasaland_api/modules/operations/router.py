@@ -11,10 +11,7 @@ from fastapi import APIRouter, Depends
 
 from brasaland_api.core.cache import response_cache
 from brasaland_api.core.deps import get_current_user
-<<<<<<< HEAD
 from brasaland_api.modules.operations.schemas import InventoryItem, SalesSummary
-=======
->>>>>>> origin/main
 from brasaland_api.modules.users.models import UserRecord
 
 router = APIRouter(prefix="/operations", tags=["operations"])
@@ -31,17 +28,8 @@ _INVENTORY = [
 ]
 
 
-<<<<<<< HEAD
 @router.get("/sales", response_model=list[SalesSummary])
 def list_sales(current_user: UserRecord = Depends(get_current_user)) -> list[SalesSummary]:
-    return _SALES
-
-
-@router.get("/inventory", response_model=list[InventoryItem])
-def list_inventory(current_user: UserRecord = Depends(get_current_user)) -> list[InventoryItem]:
-=======
-@router.get("/sales")
-def list_sales(current_user: UserRecord = Depends(get_current_user)) -> list[dict]:
     return response_cache.get_or_set(
         f"operations:sales:{current_user.id}",
         lambda: _SALES,
@@ -49,7 +37,6 @@ def list_sales(current_user: UserRecord = Depends(get_current_user)) -> list[dic
     )
 
 
-@router.get("/inventory")
-def list_inventory(current_user: UserRecord = Depends(get_current_user)) -> list[dict]:
->>>>>>> origin/main
+@router.get("/inventory", response_model=list[InventoryItem])
+def list_inventory(current_user: UserRecord = Depends(get_current_user)) -> list[InventoryItem]:
     return _INVENTORY

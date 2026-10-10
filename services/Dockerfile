@@ -2,11 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt ./requirements.txt
+COPY services/requirements.txt ./services/requirements.txt
 RUN pip install --no-cache-dir uv \
-    && uv pip install --system --no-cache -r requirements.txt
+    && uv pip install --system --no-cache -r ./services/requirements.txt
 
-COPY brasaland-api ./services/brasaland-api
+COPY packages/shared ./packages/shared
+RUN uv pip install --system --no-cache ./packages/shared
+
+COPY services/brasaland-api ./services/brasaland-api
 
 WORKDIR /app/services/brasaland-api
 EXPOSE 8010

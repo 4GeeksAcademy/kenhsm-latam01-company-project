@@ -5,6 +5,7 @@ const { URL } = require("node:url");
 
 const port = Number(process.env.PORT || 3000);
 const staticRoot = path.resolve(__dirname, process.env.STATIC_DIR || "website");
+const sharedRoot = path.resolve(__dirname, "shared");
 const backendUrl = new URL(process.env.BACKEND_URL || "http://backend:8010");
 
 function proxy(request, response) {
@@ -24,8 +25,13 @@ function proxy(request, response) {
 
 function serveStatic(request, response) {
   const requestPath = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-  const filePath = path.resolve(staticRoot, `.${requestPath === "/" ? "/index.html" : requestPath}`);
-  if (!filePath.startsWith(staticRoot)) {
+  const normalizedPath = requestPath === "/" ? "/index.html" : requestPath;
+  const isSharedAsset = normalizedPath.startsWith("/shared/");
+  const baseRoot = isSharedAsset ? sharedRoot : staticRoot;
+  const relativePath = isSharedAsset ? normalizedPath.replace(/^\/shared/, "") || "/" : normalizedPath;
+  const filePath = path.resolve(baseRoot, `.${relativePath === "/" ? "/index.html" : relativePath}`);
+  const allowedRoots = [staticRoot, sharedRoot];
+  if (!allowedRoots.some((root) => filePath.startsWith(root))) {
     response.writeHead(400);
     response.end("Solicitud inválida.");
     return;
