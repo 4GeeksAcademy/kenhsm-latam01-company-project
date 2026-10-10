@@ -64,6 +64,12 @@ Added per-event validation for `POST /telemetry/events`, a property allowlist ma
 
 
 
+## Business Pipeline Design Decision
+
+Added `data/pipelines/PIPELINE_DESIGN.md` for the weekly Brasaland location cost and waste report. The design specifies the five business KPIs, Prefect flow/tasks, the `reporting.weekly_location_performance` grain, run auditing, retry/recovery, late-event recalculation, and the separate planned `services/reporting/` endpoints. It also records verified implementation gaps: current telemetry persistence drops `eventId`/`requestId`, inserts without deduplication, and this checkout has no `GET /telemetry/report` implementation despite the milestone brief describing one. No orchestration, reporting tables, or reporting API were implemented in this design phase.
+
+Added required nonnegative `unit_cost` to the existing `stock_waste_registered` event schema, receiver allowlist, and backoffice emitter so waste cost can be computed as quantity times unit cost. The client drops missing, negative, and non-finite costs. Purchase cost continues to use the existing `quantity` and `unit_price`. Monetary values remain in each location's currency.
+
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.

@@ -70,6 +70,44 @@ test("track retries the same batch with its original event ids", async () => {
   );
 });
 
+test("track only queues stock waste with a finite nonnegative unit cost", async () => {
+  const requests = [];
+  globalThis.document = { visibilityState: "visible", addEventListener() {} };
+  globalThis.window = { addEventListener() {} };
+  globalThis.fetch = async (url, options) => {
+    if (String(url).endsWith(".env.local")) {
+      return { ok: true, text: async () => "NEXT_PUBLIC_TELEMETRY_ENDPOINT=http://localhost:8000/telemetry/events" };
+    }
+    requests.push(JSON.parse(options.body));
+    return { ok: true, status: 200 };
+  };
+
+  const { track } = await import("../src/services/telemetry.mjs?waste-cost-test");
+  const properties = {
+    location_id: "COL-01",
+    country: "CO",
+    product_id: "PROD-01",
+    product_category: "protein",
+    quantity: 2,
+    unit: "kg",
+    currency: "COP",
+    reason: "expired",
+    outbound_order_id: "OUT-1001",
+  };
+
+  track("stock_waste_registered", properties);
+  track("stock_waste_registered", { ...properties, unit_cost: -1 });
+  track("stock_waste_registered", { ...properties, unit_cost: Number.POSITIVE_INFINITY });
+  for (let index = 0; index < 20; index += 1) {
+    track("stock_waste_registered", { ...properties, unit_cost: 12000 });
+  }
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].events.length, 20);
+  assert.ok(requests[0].events.every((event) => event.properties.unit_cost === 12000));
+});
+
 test("track flushes a pending batch through sendBeacon when the page is hidden", async () => {
   let visibilityListener;
   const beacons = [];
