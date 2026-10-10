@@ -3,12 +3,12 @@ export function Sidebar() {
     <aside class="sidebar">
       <h1>Backoffice</h1>
       <nav>
-        <a href="#">Operaciones</a>
+        <a href="#operations">Operaciones</a>
         <a href="#incident-management">Gestor de incidencias</a>
         <a href="#incident-analysis">Análisis CSV</a>
-        <a href="#">Compras</a>
-        <a href="#">Personas</a>
-        <a href="#">Formacion</a>
+        <a href="#procurement">Compras</a>
+        <a href="#people">Personas</a>
+        <a href="#training">Formación</a>
       </nav>
     </aside>
   `;
