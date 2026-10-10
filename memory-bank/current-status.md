@@ -70,6 +70,14 @@ Added `data/pipelines/PIPELINE_DESIGN.md` for the weekly Brasaland location cost
 
 Added required nonnegative `unit_cost` to the existing `stock_waste_registered` event schema, receiver allowlist, and backoffice emitter so waste cost can be computed as quantity times unit cost. The client drops missing, negative, and non-finite costs. Purchase cost continues to use the existing `quantity` and `unit_price`. Monetary values remain in each location's currency.
 
+## Business Reporting Pipeline Implementation
+
+Implemented the weekly Prefect flow in `data/pipelines/pipeline.py`, with pure weekly KPI transformation, idempotent upsert by `(location_id, week_start)`, structured run metadata, one-hour transformation caching, retry policies, and a non-critical evaluation snapshot. Added authenticated reporting endpoints and the `reporting` schema migration; the admin-only manual endpoint invokes the same flow as the CLI.
+
+The CLI was verified in local validation mode without Supabase credentials. Production deployment still requires the migration and PostgREST exposure of `reporting`. Existing telemetry persistence does not retain the envelope `eventId`; the pipeline defensively deduplicates by the persisted row `id` and does not change the telemetry writer. The source also has no explicit per-location completeness signal, so zero-filled locations must be interpreted with that limitation.
+
+`uv add` could not resolve the existing `services/brasaland-api/uv.lock` because it contains duplicate `certifi` package records; Prefect is declared in `pyproject.toml` and installed in the active environment, but the lock still needs regeneration.
+
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.

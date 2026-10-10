@@ -21,5 +21,6 @@ Current service entrypoints:
 1. `api/` exposes the incident analysis API required by the project delivery.
 2. `brasaland-api/` is the central FastAPI backend with JWT authentication, `users`/`profiles` (TinyDB-only), and route protection (AUTH-01).
 3. `brasaland-api/` also exposes the centralized incident lifecycle at `/api/incidents` and persists incident records in TinyDB.
+4. `reporting/` contains authenticated business KPI endpoints backed by Prefect flows in `data/pipelines/`, separate from technical telemetry.
 
 > _Spanish version: [README.es.md](./README.es.md)._
