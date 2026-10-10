@@ -23,6 +23,7 @@ mountApp("#app", () => `
           ${operationalSnapshot.metrics.map((metric) => KpiCard(metric)).join("")}
         </section>
         ${ContextFact(operationalSnapshot.contextFact)}
+        ${operationsQuickLinks()}
         ${incidentManagementMarkup()}
         <section class="analysis-panel" id="incident-analysis">
           <div class="section-heading">
@@ -64,9 +65,15 @@ window.addEventListener("pagehide", () => {
 function trackNavigation(event) {
   const link = event.target.closest("nav a");
   if (!link) return;
-  const sectionId = link.getAttribute("href") === "#incident-analysis"
+  const href = link.getAttribute("href") || "";
+  const label = link.textContent.trim();
+  const sectionId = href === "#incident-analysis"
     ? "incident_analysis"
-    : link.textContent.trim() === "Operaciones" ? "operations" : null;
+    : href === "#operations" || label === "Operaciones" ? "operations"
+    : href === "#procurement" || label === "Compras" ? "procurement"
+    : href === "#people" || label === "Personas" ? "people"
+    : href === "#training" || label === "Formación" ? "training"
+    : null;
   if (!sectionId) return;
   track("section_viewed", { section_id: sectionId, client_area: "backoffice", navigation_source: "menu" });
 }
@@ -134,6 +141,24 @@ function createUuid() {
     const random = Math.floor(Math.random() * 16);
     return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
   });
+}
+
+function operationsQuickLinks() {
+  return `
+    <section class="quick-links" id="operations">
+      <div class="section-heading">
+        <div>
+          <p class="kicker">Área operativa</p>
+          <h2>Operaciones</h2>
+        </div>
+      </div>
+      <div class="cards">
+        <article id="procurement"><h3>Compras</h3><p>Seguimiento de proveedores, pedidos y aprovisionamiento.</p></article>
+        <article id="people"><h3>Personas</h3><p>Gestión de equipos, turnos y atención de plantilla.</p></article>
+        <article id="training"><h3>Formación</h3><p>Capacitación y cumplimiento de procedimientos operativos.</p></article>
+      </div>
+    </section>
+  `;
 }
 
 function incidentManagementMarkup() {
