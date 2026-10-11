@@ -110,4 +110,10 @@ Privacy controls block customer/Brasa Points and payroll/compensation data from 
 
 Approval, rejection, edit, ambiguity, non-memorable examples, privacy, expiry, caps, and owner-isolated API reads are covered in `services/brasaland-api/tests/test_agent_memory.py` and `test_agent_memory_flow.py`. The OIDC/MCP Playground prerequisite from the prior milestone remains unrelated and still requires deployment credentials.
 
+## Agent Guardrail Harness Decision (2026-10-11)
+
+Secured the same `manager_support` graph with a deterministic input gate before memory/RAG/MCP, a short bilingual small-talk/trivia redirect path, and validated generation/tool outputs. The system policy is fixed in the system role and explicitly limits the agent to Brasaland manager operations; user input, approved memory, RAG documents, and MCP results are sanitized/escaped and isolated as untrusted data. Exact recipe formulas, supplier prices/contracts, payroll/performance data, and customer identifiers are blocked at input/output boundaries. Malformed structured output falls back to validated RAG excerpts without a model retry; extra model fields fail structural validation.
+
+Guardrail activation is logged with session, category, action, and count; authenticated `GET /agent/guardrails/summary` exposes process-local counters. Deterministic abuse and output-isolation tests live in `services/brasaland-api/tests/test_agent_guardrails.py`; required jailbreak variants and three-turn recipe extraction are documented in `docs/agent-memory/guardrail-harness.md`. Cross-worker production metrics still need a shared telemetry backend before being treated as global totals.
+
 

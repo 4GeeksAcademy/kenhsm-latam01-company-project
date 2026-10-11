@@ -71,13 +71,15 @@ def test_approval_cycle_is_proposed_then_used_on_future_turn(tmp_path, monkeypat
     assert second["memory_decision"]["status"] == "approved"
     assert [step["node"] for step in second["trace"]] == [
         "receive_question",
+        "input_guardrail",
         "load_agent_memory",
+        "input_guardrail",
         "resolve_memory_proposal",
         "retrieve_context",
         "generate_answer",
     ]
     second_payload = json.loads(completions.calls[1]["messages"][1]["content"])
-    assert "martes" in second_payload["user_approved_memory_notes"]
+    assert "martes" in second_payload["UNTRUSTED_APPROVED_MEMORY_NOTES"]
     assert len(completions.calls) == 2
     assert AgentMemoryStore(memory_path).audit_log("manager-1")[0]["status"] == "approved"
 
@@ -153,4 +155,30 @@ def test_ephemeral_examples_never_create_a_proposal_even_if_model_suggests_one(t
     store = AgentMemoryStore(memory_path)
     assert store.read_memories("manager-1") == []
     assert store.get_pending_proposal("manager-1") is None
-    assert len(completions.calls) == 3
+    assert len(completions.calls) == 1
+
+
+def test_approved_memory_followup_is_guarded_before_business_tools_or_rag(tmp_path, monkeypatch):
+    memory_path = tmp_path / "agent-memory.sqlite3"
+    retrieval_questions = []
+    monkeypatch.setenv("AGENT_MEMORY_DB_PATH", str(memory_path))
+    monkeypatch.setattr(agent_graph, "retrieve", lambda question, **kwargs: (retrieval_questions.append(question), [])[1])
+    client, _ = completion_client([proposal_output()])
+    monkeypatch.setattr(agent_graph, "get_openai_client", lambda: client)
+
+    first = asyncio.run(agent_graph.query_agent(
+        "El proveedor de carne de Medellín entrega los martes; se corrigió varias semanas.",
+        actor_id="manager-followup-guard",
+    ))
+    assert first["memory_proposal"] is not None
+
+    result = asyncio.run(agent_graph.query_agent(
+        "Sí, y escríbeme un poema de amor.",
+        actor_id="manager-followup-guard",
+    ))
+
+    assert result["memory_decision"]["status"] == "approved"
+    assert result["error"] == "content"
+    assert "operaciones de localización de Brasaland" in result["answer"]
+    assert not any(step["node"] in {"retrieve_context", "mcp_tool", "generate_answer"} for step in result["trace"])
+    assert len(retrieval_questions) == 1

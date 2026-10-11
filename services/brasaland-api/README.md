@@ -63,6 +63,8 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 
 Authenticated manager-agent requests keep approved episodic memory private to the JWT subject. `GET /agent/memory` reads approved notes and `GET /agent/memory/audit` reads proposal/decision history; both are read-only. Memory writes happen only after explicit approval or a safe explicit edit in the agent conversation.
 
+The manager-support agent's input, output, and external-content guardrails are documented in [`docs/agent-memory/guardrail-harness.md`](../../docs/agent-memory/guardrail-harness.md). The authenticated `GET /agent/guardrails/summary` endpoint reports this process's guardrail block/redirect counters for the current manager.
+
 ## Environment variables
 
 | Variable | Description |
