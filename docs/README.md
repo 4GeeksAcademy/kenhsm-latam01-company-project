@@ -10,3 +10,4 @@ This folder holds **cross-cutting documentation** for the monorepo: architecture
 ## Guides
 
 - [Brasaland manager agent memory design](./agent-memory/memory-design.md): architecture, privacy, consent, retention, and verified approval/rejection cycles.
+- [Brasaland manager agent guardrail harness](./agent-memory/guardrail-harness.md): scope policy, injection isolation, output validation, abuse cases, and metrics.

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from brasaland_api.modules.agent.graph import query_agent
 from brasaland_api.modules.agent.memory import AgentMemoryStore
+from brasaland_api.modules.agent.guardrails import metrics as guardrail_metrics
 from brasaland_api.core.deps import get_current_user
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -43,6 +44,11 @@ def read_agent_memory(current_user=Depends(get_current_user)) -> list[dict[str, 
 @router.get("/memory/audit")
 def read_agent_memory_audit(current_user=Depends(get_current_user)) -> list[dict[str, Any]]:
     return AgentMemoryStore().audit_log(current_user.id)
+
+
+@router.get("/guardrails/summary")
+def read_guardrail_summary(current_user=Depends(get_current_user)) -> dict[str, Any]:
+    return guardrail_metrics.summary(current_user.id)
 
 
 @router.post("/query", response_model=AgentQueryResponse)
