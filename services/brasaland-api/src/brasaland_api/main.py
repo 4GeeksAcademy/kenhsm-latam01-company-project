@@ -23,6 +23,7 @@ from brasaland_api.core.config import get_settings
 from brasaland_api.core.schemas import HealthOut
 from brasaland_api.modules.auth.router import router as auth_router
 from brasaland_api.modules.hr.router import router as hr_router
+from brasaland_api.modules.knowledge.router import router as knowledge_router
 from brasaland_api.modules.operations.router import router as operations_router
 from brasaland_api.modules.profiles.router import router as profiles_router
 from brasaland_api.modules.supply_chain.router import router as supply_chain_router
@@ -90,6 +91,7 @@ app.include_router(operations_router)
 app.include_router(supply_chain_router)
 app.include_router(hr_router)
 app.include_router(telemetry_router)
+app.include_router(knowledge_router)
 app.include_router(reporting_router)
 
 

@@ -30,6 +30,19 @@ services:
       - "8010:8010"
     volumes:
       - ./services/brasaland-api:/app/services/brasaland-api
+    depends_on:
+      - qdrant
+    networks:
+      - brasaland-dev
+
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    container_name: brasaland-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
     networks:
       - brasaland-dev
 
@@ -40,3 +53,4 @@ networks:
 volumes:
   interfaces_website_node_modules:
   interfaces_backoffice_node_modules:
+  qdrant_storage:
