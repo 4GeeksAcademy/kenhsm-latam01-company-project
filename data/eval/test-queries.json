@@ -1,0 +1,47 @@
+[
+  {
+    "question": "¿Cuántos puntos acumula un cliente por cada 10.000 COP gastados?",
+    "expected_source_document": "loyalty-program",
+    "expected_section": "Programa de Lealtad \"Brasa Points\""
+  },
+  {
+    "question": "¿Qué porcentaje de descuento recibe un cliente de nivel Plata al mes?",
+    "expected_source_document": "loyalty-program",
+    "expected_section": "Niveles del programa"
+  },
+  {
+    "question": "¿Cuál es el beneficio de nivel Oro en Brasa Points?",
+    "expected_source_document": "loyalty-program",
+    "expected_section": "Niveles del programa"
+  },
+  {
+    "question": "¿Cuándo se activa una alerta por desperdicio no explicado?",
+    "expected_source_document": "waste-protocol",
+    "expected_section": "Protocolo de Control de Desperdicio"
+  },
+  {
+    "question": "¿Qué debe hacer un local si tiene más de 2 kg de proteína cárnica desperdiciada en un turno?",
+    "expected_source_document": "waste-protocol",
+    "expected_section": "Procedimiento diario"
+  },
+  {
+    "question": "¿La Costilla BBQ tiene alérgenos?",
+    "expected_source_document": "menu-allergens",
+    "expected_section": "Platos principales y sus alérgenos declarados"
+  },
+  {
+    "question": "¿Qué debe comunicar el mesero si un cliente tiene alergia severa?",
+    "expected_source_document": "menu-allergens",
+    "expected_section": "Protocolo ante alergias reportadas por el cliente"
+  },
+  {
+    "question": "¿Cuándo debe generar un pedido de emergencia un local?",
+    "expected_source_document": "supplier-ordering",
+    "expected_section": "Regla de stock mínimo"
+  },
+  {
+    "question": "¿Quién aprueba un pedido de emergencia que supera 500 USD?",
+    "expected_source_document": "supplier-ordering",
+    "expected_section": "Regla de stock mínimo"
+  }
+]

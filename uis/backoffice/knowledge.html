@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brasaland Knowledge</title>
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --panel: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --accent: #1b5e3d;
+        --accent-soft: #dff4e8;
+        --error: #b91c1c;
+        --shadow: rgba(17, 24, 39, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(180deg, #f4f8f3 0%, #edf3ef 100%);
+        color: var(--text);
+      }
+      .container {
+        max-width: 900px;
+        margin: 48px auto;
+        padding: 24px;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 20px;
+        box-shadow: 0 12px 30px var(--shadow);
+        padding: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 3vw, 2.5rem);
+      }
+      .subtitle {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+      textarea {
+        width: 100%;
+        min-height: 130px;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #d1d5db;
+        resize: vertical;
+        font: inherit;
+      }
+      button {
+        display: inline-block;
+        margin-top: 16px;
+        border: none;
+        border-radius: 999px;
+        background: var(--accent);
+        color: white;
+        padding: 12px 20px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.65;
+        cursor: wait;
+      }
+      .status {
+        min-height: 24px;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+      .status.error {
+        color: var(--error);
+      }
+      .answer {
+        margin-top: 24px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(27, 94, 61, 0.2);
+        border-radius: 16px;
+        padding: 20px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <h1>Asistente de conocimiento Brasaland</h1>
+        <p class="subtitle">Consulta la base de conocimiento del programa de lealtad, desperdicio, alérgenos y proveedores.</p>
+
+        <form id="knowledge-form">
+          <label for="question">Pregunta</label>
+          <textarea id="question" name="question" placeholder="Ejemplo: ¿Cuánto cuesta el nivel Oro de Brasa Points?" required></textarea>
+          <button type="submit">Consultar</button>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="answer" class="answer" hidden></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('knowledge-form');
+      const status = document.getElementById('status');
+      const answer = document.getElementById('answer');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = document.getElementById('question').value.trim();
+        if (!question) {
+          status.textContent = 'Escribe una pregunta antes de consultar.';
+          status.classList.add('error');
+          return;
+        }
+
+        const button = form.querySelector('button');
+        button.disabled = true;
+        status.textContent = 'Consultando la base de conocimiento...';
+        status.classList.remove('error');
+        answer.hidden = true;
+        answer.textContent = '';
+
+        try {
+          const response = await fetch('http://127.0.0.1:8010/knowledge/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question }),
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || 'No se pudo completar la consulta.');
+          }
+
+          answer.textContent = payload.answer || 'No se generó respuesta.';
+          answer.hidden = false;
+          status.textContent = 'Respuesta generada por el modelo.';
+        } catch (error) {
+          status.textContent = error.message;
+          status.classList.add('error');
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
