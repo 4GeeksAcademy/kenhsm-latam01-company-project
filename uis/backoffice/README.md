@@ -36,3 +36,7 @@ The backoffice reads public endpoint settings from `.env.local`, so serve it ove
 Open `http://localhost:3000`. `.env.local` contains only public endpoint URLs; never put secrets in it. Copy `telemetry.env.example` to `.env.local` when setting up another checkout.
 
 The telemetry receiver validates the envelope and logs each batch but does not persist events. Inventory-order, stock, and authentication UI flows are not implemented in this backoffice yet, so their events are accepted by the service contract but are not synthesized from unrelated actions.
+
+## Weekly business report
+
+Open `http://localhost:3000/reporting.html` for the weekly location cost and waste dashboard. It signs in through `/auth/login` and reads `/reporting/weekly-location-performance` from `services/brasaland-api`; the API base URL is `NEXT_PUBLIC_REPORTING_API_ENDPOINT` in `.env.local` (default `http://127.0.0.1:8000`). Use a Brasaland account with permission to read reporting data. The JWT is stored under the existing `brasaland_access_token` local-storage key and is shared with the other authenticated Brasaland UI.

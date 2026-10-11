@@ -232,6 +232,146 @@ body {
   color: #5a6a62;
 }
 
+.reporting-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.2rem;
+}
+
+.reporting-header h2 {
+  margin-bottom: 0;
+}
+
+.reporting-nav a[aria-current="page"] {
+  background: #dbe9e1;
+  font-weight: 700;
+}
+
+.reporting-controls,
+.reporting-login {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1.25rem 0;
+}
+
+.reporting-login {
+  align-items: center;
+  max-width: 620px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.25rem;
+}
+
+.reporting-login h3 {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.reporting-login label,
+.reporting-controls label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.reporting-login label {
+  flex: 1 1 220px;
+}
+
+.reporting-login input,
+.reporting-controls input {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 0.6rem;
+  font: inherit;
+}
+
+.reporting-login button,
+.reporting-controls button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 0.9rem;
+}
+
+.reporting-controls {
+  justify-content: space-between;
+}
+
+.reporting-period {
+  margin: 0.4rem 0 1rem;
+  color: #46564e;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.reporting-status {
+  min-height: 1.5rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.reporting-status.is-error {
+  color: #9b2c2c;
+}
+
+.reporting-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-top: 2px solid var(--primary);
+}
+
+.reporting-table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+  background: var(--panel);
+}
+
+.reporting-table th,
+.reporting-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.8rem 0.7rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.reporting-table th {
+  background: #eaf2ed;
+  font-size: 0.88rem;
+  vertical-align: bottom;
+}
+
+.reporting-table th:first-child,
+.reporting-table td:first-child {
+  text-align: left;
+}
+
+.reporting-table td:first-child {
+  font-weight: 700;
+}
+
+.reporting-table small {
+  display: block;
+  color: #5a6a62;
+  font-weight: 400;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: 1fr;
@@ -245,4 +385,15 @@ body {
   .incident-form, .filters { grid-template-columns: 1fr; }
   .incident-row { align-items: stretch; flex-direction: column; }
   .incident-row label { min-width: 0; }
+
+  .reporting-header,
+  .reporting-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reporting-login button,
+  .reporting-controls button {
+    width: 100%;
+  }
 }

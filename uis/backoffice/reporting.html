@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Reporte semanal de costo y merma por local de Brasaland." />
+  <meta name="theme-color" content="#f3f6f4" />
+  <link rel="icon" href="data:," />
+  <title>Reporte semanal | Brasaland</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar reporting-nav">
+      <h1>Brasaland</h1>
+      <nav aria-label="Navegación principal">
+        <a href="./index.html">Operaciones</a>
+        <a href="./reporting.html" aria-current="page">Reporte semanal</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <header class="reporting-header">
+        <div>
+          <p class="kicker">Compras y operaciones</p>
+          <h2>Reporte semanal de costo y merma por local</h2>
+        </div>
+        <button id="logout-button" type="button" hidden>Cerrar sesión</button>
+      </header>
+
+      <form id="login-form" class="reporting-login">
+        <h3>Iniciar sesión</h3>
+        <label>Correo electrónico<input name="username" type="email" autocomplete="username" required /></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
+        <button type="submit">Entrar al reporte</button>
+      </form>
+      <div id="report-status" class="reporting-status" role="status" aria-live="polite"></div>
+
+      <section id="weekly-report" hidden aria-labelledby="report-title">
+        <div class="reporting-controls">
+          <label for="week-start">Semana del reporte<input id="week-start" type="date" /></label>
+          <button id="load-report" type="button">Consultar semana</button>
+        </div>
+        <h3 id="report-title" class="reporting-period"></h3>
+        <div class="reporting-table-wrap">
+          <table class="reporting-table">
+            <thead>
+              <tr>
+                <th scope="col">Local</th>
+                <th scope="col">País</th>
+                <th scope="col">Costo de compra por local</th>
+                <th scope="col">Costo de merma por local</th>
+                <th scope="col">Ratio de merma</th>
+                <th scope="col">Frecuencia de quiebre de stock</th>
+                <th scope="col">Frecuencia de alertas de precio</th>
+              </tr>
+            </thead>
+            <tbody id="report-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./reporting.js"></script>
+</body>
+</html>
