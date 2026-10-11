@@ -62,7 +62,11 @@ Account management lives at `/account/profile` (not `/account`). `lib/auth-fetch
 
 Added per-event validation for `POST /telemetry/events`, a property allowlist matching the approved registry, and one bulk PostgREST insert per non-empty valid batch. The migration creates `telemetry_events`, the three analytical indexes, and insert-only privileges for `service_role`; rows store only validated `properties` in `tags`. This branch has no Supabase URL/service-role credentials, so the migration has not been applied remotely and live persistence remains pending local/deployment configuration. The frontend was not changed.
 
+## Technical Telemetry Report Decision (2026-10-11) and Implementation
 
+Added read-only Pandas analyses and `GET /telemetry/report` for event volume by day/type, severity-based error rate, mean/p95 API latency, and daily login-failure ratio. Supabase queries filter `event_type` and a UTC half-open time window in PostgREST before loading only `timestamp,event_type,level,value,tags`; results contain JSON-safe dates. The report resolves a seven-day window once, validates explicit timestamps, and caches identical explicit periods or the default period for 60 seconds. The backoffice has a separate technical telemetry view.
+
+The report-specific deterministic suite passes. Live-data validation (including the requested 20-row check) is blocked because neither `SUPABASE_URL` nor `SUPABASE_SERVICE_ROLE_KEY` is configured; no synthetic events were inserted. The report safely returns 503 until configured. Existing `tests/test_telemetry.py` has two unrelated stale expectations: an incomplete `section_viewed` properties fixture and an expectation of 422 where the batch receiver intentionally reports per-item rejection with 200.
 
 ## Business Pipeline Design Decision
 
@@ -74,7 +78,7 @@ Added required nonnegative `unit_cost` to the existing `stock_waste_registered` 
 
 Implemented the weekly Prefect flow in `data/pipelines/pipeline.py`, with pure weekly KPI transformation, idempotent upsert by `(location_id, week_start)`, structured run metadata, one-hour transformation caching, retry policies, and a non-critical evaluation snapshot. Added authenticated reporting endpoints and the `reporting` schema migration; the admin-only manual endpoint invokes the same flow as the CLI.
 
-The CLI was verified in local validation mode without Supabase credentials. Production deployment still requires the migration and PostgREST exposure of `reporting`. Existing telemetry persistence does not retain the envelope `eventId`; the pipeline defensively deduplicates by the persisted row `id` and does not change the telemetry writer. The source also has no explicit per-location completeness signal, so zero-filled locations must be interpreted with that limitation.
+The CLI was verified in local validation mode without Supabase credentials. Production deployment still requires the migration and PostgREST exposure of `reporting`. Existing telemetry persistence does not retain the envelope `eventId`; the pipeline defensively deduplicates by the persisted row `id` and does not change the telemetry writer. The source also has no explicit per-location completeness signal, so zero-filled locations must be interpreted with that limitation. The technical `GET /telemetry/report` is a separate read-only analysis path and is not used by this business reporting pipeline.
 
 The backoffice now has a weekly business report page at `uis/backoffice/reporting.html`, using the authenticated reporting API and showing all five weekly location KPIs. The requested Milestone 3 Prefect subflow refactor and `tests/pipelines/test_pipeline.py` are still pending: the editor's Copilot content exclusion rejects reads and edits under `data/`, and this task did not bypass that restriction.
 

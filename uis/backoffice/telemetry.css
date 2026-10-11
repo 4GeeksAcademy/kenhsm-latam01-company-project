@@ -1,0 +1,147 @@
+.telemetry-page {
+  max-width: 1500px;
+}
+
+.telemetry-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.telemetry-header h2 {
+  margin: .4rem 0;
+}
+
+.telemetry-header > div > p:last-child {
+  color: #51645a;
+  margin: .4rem 0 0;
+}
+
+.telemetry-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: 1.1rem 0 .65rem;
+}
+
+.telemetry-controls label {
+  display: grid;
+  gap: .3rem;
+  font-weight: 700;
+}
+
+.telemetry-controls input,
+.telemetry-controls button,
+.telemetry-retry {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .55rem .7rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+
+.telemetry-controls button,
+.telemetry-retry {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.telemetry-controls button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.telemetry-status {
+  min-height: 1.5rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.telemetry-status.is-error {
+  color: #9b2c2c;
+}
+
+.telemetry-period {
+  color: #51645a;
+  font-variant-numeric: tabular-nums;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .9rem;
+  margin-top: 1rem;
+}
+
+.telemetry-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .8rem;
+  background: var(--panel);
+}
+
+.telemetry-panel h3 {
+  margin: .15rem 0 .8rem;
+  font-size: 1rem;
+}
+
+.telemetry-table-wrap {
+  overflow-x: auto;
+}
+
+.telemetry-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9rem;
+  text-align: left;
+}
+
+.telemetry-panel th,
+.telemetry-panel td {
+  padding: .55rem .5rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.telemetry-panel th {
+  color: #42554b;
+  font-size: .78rem;
+}
+
+.telemetry-panel td:nth-last-child(-n+3) {
+  font-variant-numeric: tabular-nums;
+}
+
+.telemetry-retry[hidden] {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .sidebar nav a {
+    white-space: nowrap;
+  }
+
+  .telemetry-grid {
+    grid-template-columns: 1fr;
+  }
+}

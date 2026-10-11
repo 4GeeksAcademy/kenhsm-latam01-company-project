@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Reporte técnico de actividad, errores y latencia de telemetría Brasaland." />
+  <meta name="theme-color" content="#f3f6f4" />
+  <link rel="icon" href="data:," />
+  <title>Reporte técnico de telemetría | Brasaland</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="telemetry.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>Backoffice</h1>
+      <nav aria-label="Navegación principal">
+        <a href="./index.html">Operaciones</a>
+        <a href="./reporting.html">Reporte semanal de negocio</a>
+        <a href="./telemetry.html" aria-current="page">Reporte técnico</a>
+      </nav>
+    </aside>
+    <main class="content telemetry-page">
+      <header class="telemetry-header">
+        <div>
+          <p class="kicker">Ingeniería · telemetría técnica</p>
+          <h2>Estado del sistema</h2>
+          <p>Volumen de eventos, fallos, latencia y autenticación. No incluye KPIs de negocio.</p>
+        </div>
+      </header>
+
+      <form id="period-form" class="telemetry-controls">
+        <label>Desde (UTC, inclusivo)<input id="start-date" name="start_date" type="datetime-local" /></label>
+        <label>Hasta (UTC, exclusivo)<input id="end-date" name="end_date" type="datetime-local" /></label>
+        <button id="load-report" type="submit">Consultar</button>
+      </form>
+      <div id="telemetry-status" class="telemetry-status" role="status" aria-live="polite">Consultando los últimos siete días...</div>
+      <p id="report-period" class="telemetry-period"></p>
+
+      <section class="telemetry-grid" aria-label="Métricas técnicas">
+        <article class="telemetry-panel">
+          <h3>Volumen de eventos por día y tipo</h3>
+          <div class="telemetry-table-wrap"><table><thead><tr><th>Día UTC</th><th>Tipo de evento</th><th>Eventos</th></tr></thead><tbody id="events-rows"></tbody></table></div>
+        </article>
+        <article class="telemetry-panel">
+          <h3>Tasa de error por día y tipo</h3>
+          <div class="telemetry-table-wrap"><table><thead><tr><th>Día UTC</th><th>Tipo de evento</th><th>Errores</th><th>Total</th><th>Tasa</th></tr></thead><tbody id="errors-rows"></tbody></table></div>
+        </article>
+        <article class="telemetry-panel">
+          <h3>Latencia API por día y ruta</h3>
+          <div class="telemetry-table-wrap"><table><thead><tr><th>Día UTC</th><th>Ruta</th><th>Peticiones</th><th>Media (ms)</th><th>P95 (ms)</th></tr></thead><tbody id="latency-rows"></tbody></table></div>
+        </article>
+        <article class="telemetry-panel">
+          <h3>Fallos de login por día</h3>
+          <div class="telemetry-table-wrap"><table><thead><tr><th>Día UTC</th><th>Fallos</th><th>Intentos</th><th>Tasa</th></tr></thead><tbody id="auth-rows"></tbody></table></div>
+        </article>
+      </section>
+      <button id="retry-report" class="telemetry-retry" type="button" hidden>Reintentar</button>
+    </main>
+  </div>
+  <script type="module" src="./telemetry.js"></script>
+</body>
+</html>

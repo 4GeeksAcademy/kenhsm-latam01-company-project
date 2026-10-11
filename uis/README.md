@@ -10,7 +10,7 @@ Each subfolder inside `uis/` must correspond to **one specific user interface** 
 ## Current interfaces
 
 1. `website/`: public-facing Brasaland website entrypoint.
-2. `backoffice/`: internal operations entrypoint for company teams.
+2. `backoffice/`: internal operations entrypoint for company teams, including separate weekly business reporting and technical telemetry reporting views.
 
 The backoffice includes incident registration, filtering, lifecycle updates, and summary metrics backed by `services/brasaland-api`.
 

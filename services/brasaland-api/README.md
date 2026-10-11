@@ -81,6 +81,10 @@ The manager-support agent's input, output, and external-content guardrails are d
 ## Telemetry storage
 
 Apply `migrations/001_create_telemetry_events.sql` to the Supabase project before enabling ingestion. It creates the append-only table, the timestamp/event-type/JSONB indexes, and insert-only access for `service_role`. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the API's local `.env` or deployment secret store. The receiver validates events individually and sends all accepted rows in one PostgREST request. `tags` contains exactly the validated event `properties`; envelope IDs are not duplicated there.
+
+`GET /telemetry/report` is a technical report for event volume, error rate, API latency, and daily authentication failures. It reads `telemetry_events` through read-only PostgREST queries, applies a 7-day UTC window by default, and caches each period for 60 seconds. Run its isolated tests with `PYTHONPATH=src:../.. uv run pytest tests/test_telemetry_analysis.py -q`. A live report requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the endpoint returns a generic 503 while they are unset.
+
+Analysis uses Pandas and remains separate from the weekly business pipeline in `services/reporting/`; it only selects `timestamp`, `event_type`, `level`, `value`, and `tags` from `telemetry_events` and never writes to that table.
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
 | `TELEMETRY_ENDPOINT` | Configured telemetry receiver URL (default `http://localhost:8000/telemetry/events`; reserved for the next pipeline phase). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
