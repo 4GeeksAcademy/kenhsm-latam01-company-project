@@ -13,19 +13,14 @@ _Base template for transversal projects in the AI Engineering Career Program —
 
 This repository is the **starter template** for transversal projects. You will work on real company scenarios (Brasaland, TrackFlow, Nexova), building deliverables that map to course milestones (Web, Programming, Backend, Telemetry, RAG, Agents, Workflows, Real-time).
 
-- Create a template from this repository.
-- Replace the placeholder `CONTEXT.md` with your assigned company context.
+- Use the consolidated Brasaland context and specifications linked below as the project's sources of truth.
 - Use `skills/` and the directory-level `README.md` files as working guidance.
 
 ---
 
-## Current status of the template
+## Current status
 
-The repository currently provides a **base folder structure and documentation skeleton**. It does not include runnable apps or global scripts yet.
-
-- `CONTEXT.md` is a placeholder and must be replaced with your assigned company context.
-- There is no root `AGENTS.md` yet.
-- Shared package metadata exists in `packages/shared/package.json` (`@repo/shared-types`), but no workspace runner is configured at root.
+This workspace is configured for Brasaland. The canonical company/domain context and consolidated project requirements live in [`docs/brasaland/contexto-maestro.md`](./docs/brasaland/contexto-maestro.md) and [`docs/brasaland/especificaciones-maestro.md`](./docs/brasaland/especificaciones-maestro.md). The root `CONTEXT.md` is retained as a protected legacy reference; do not treat it as the canonical source for new work.
 
 ---
 
@@ -35,7 +30,7 @@ The repository currently provides a **base folder structure and documentation sk
 ai-engineering-company-project-monorepo/
 ├── README.md
 ├── README.es.md
-├── CONTEXT.md                # Placeholder to be replaced with assigned context
+├── CONTEXT.md                # Protected legacy context retained for compatibility
 ├── agents/                   # Agent patterns/templates and tools docs
 ├── data/                     # raw, process, pipelines, eval
 ├── docs/                     # Project and architecture documentation
@@ -58,9 +53,9 @@ ai-engineering-company-project-monorepo/
 
 1. **Use this repository as a template** and create your own project repo.
 2. **Clone** your repository (or open it in Codespaces).
-3. **Replace** `CONTEXT.md` with the full context for your assigned company.
+3. **Read** the canonical company context and specification register linked above before implementing a milestone.
 4. **Review** each top-level folder `README.md` to understand intended responsibilities (`uis/`, `services/`, `data/`, `skills/`, etc.).
-5. **Start implementing** milestone deliverables in `uis/` and `services/`, reusing `packages/shared/` and `data/` as needed.
+5. **Start implementing** milestone deliverables in the appropriate folders, reusing existing packages and pipelines where possible.
 
 ---
 

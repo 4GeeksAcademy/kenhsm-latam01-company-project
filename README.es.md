@@ -13,19 +13,14 @@ _Las instrucciones están [disponibles en inglés](./README.md)._
 
 Este repositorio es la **plantilla de inicio** para los proyectos transversales. Trabajarás con escenarios de empresas reales (Brasaland, TrackFlow, Nexova) construyendo entregables que se corresponden con los hitos del curso (Web, Programación, Backend, Telemetría, RAG, Agentes, Workflows, Tiempo real).
 
-- Crea una plantilla a partir de este repositorio.
-- Reemplaza el `CONTEXT.md` placeholder por el contexto de tu empresa asignada.
+- Usa el contexto y las especificaciones maestras enlazadas abajo como fuentes de verdad de este proyecto Brasaland.
 - Usa `skills/` y los `README.md` por carpeta como guía de trabajo.
 
 ---
 
-## Estado actual de la plantilla
+## Estado actual
 
-Actualmente el repositorio ofrece una **estructura base de carpetas y documentación**, pero todavía no incluye aplicaciones ejecutables ni scripts globales en la raíz.
-
-- `CONTEXT.md` es un placeholder y debe sustituirse por el contexto de la empresa asignada.
-- No existe todavía un `AGENTS.md` en la raíz.
-- Existe metadata del paquete compartido en `packages/shared/package.json` (`@repo/shared-types`), pero aún no hay runner de workspace en raíz.
+Este workspace está configurado para Brasaland. El contexto canónico y las especificaciones consolidadas viven en [`docs/brasaland/contexto-maestro.md`](./docs/brasaland/contexto-maestro.md) y [`docs/brasaland/especificaciones-maestro.md`](./docs/brasaland/especificaciones-maestro.md). El `CONTEXT.md` raíz se conserva como referencia heredada protegida; no es la fuente canónica para trabajo nuevo.
 
 ---
 
@@ -35,7 +30,7 @@ Actualmente el repositorio ofrece una **estructura base de carpetas y documentac
 ai-engineering-company-project-monorepo/
 ├── README.md
 ├── README.es.md
-├── CONTEXT.md                # Placeholder a reemplazar con el contexto asignado
+├── CONTEXT.md                # Referencia heredada protegida, conservada por compatibilidad
 ├── agents/                   # Patrones/plantillas de agentes y documentación de tools
 ├── data/                     # raw, process, pipelines, eval
 ├── docs/                     # Documentación de proyecto y arquitectura
@@ -58,7 +53,7 @@ ai-engineering-company-project-monorepo/
 
 1. **Usa este repositorio como plantilla** y crea tu propio repo de proyecto.
 2. **Clona** tu repositorio (o ábrelo en Codespaces).
-3. **Reemplaza** `CONTEXT.md` con el contexto completo de tu empresa asignada.
+3. **Lee** el contexto y el registro de especificaciones maestras enlazados arriba antes de empezar un hito.
 4. **Revisa** los `README.md` de cada carpeta raíz para entender responsabilidades (`uis/`, `services/`, `data/`, `skills/`, etc.).
 5. **Empieza a implementar** entregables por hito en `uis/` y `services/`, reutilizando `packages/shared/` y `data/` según corresponda.
 

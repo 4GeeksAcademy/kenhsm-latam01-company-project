@@ -2,5 +2,8 @@
 
 Esta carpeta contiene la **documentación transversal** del monorepo: guías de arquitectura, decisiones técnicas, convenciones, procesos, y cualquier material compartido entre aplicaciones, pipelines, agentes y workflows.
 
-- **Propósito principal**: tener un punto único para la documentación “global” del proyecto (no específica de una sola app/agente).
-- **Recomendación**: organiza la documentación por temas (arquitectura, despliegue, datos, seguridad, observabilidad, etc.) y mantén enlaces desde los READMEs de cada componente hacia estas guías.
+
+## Guías
+
+- [Contexto maestro de Brasaland](./brasaland/contexto-maestro.md): fuente canónica de empresa, dominios, datos, agente y privacidad.
+- [Especificaciones maestras de Brasaland](./brasaland/especificaciones-maestro.md): requisitos consolidados por hito y criterios de aceptación.

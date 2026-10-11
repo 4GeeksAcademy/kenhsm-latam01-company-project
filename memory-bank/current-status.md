@@ -116,4 +116,8 @@ Secured the same `manager_support` graph with a deterministic input gate before 
 
 Guardrail activation is logged with session, category, action, and count; authenticated `GET /agent/guardrails/summary` exposes process-local counters. Deterministic abuse and output-isolation tests live in `services/brasaland-api/tests/test_agent_guardrails.py`; required jailbreak variants and three-turn recipe extraction are documented in `docs/agent-memory/guardrail-harness.md`. Cross-worker production metrics still need a shared telemetry backend before being treated as global totals.
 
+## Documentation Consolidation Decision (2026-10-11)
+
+Created `docs/brasaland/contexto-maestro.md` and `docs/brasaland/especificaciones-maestro.md` as canonical company context and consolidated milestone requirements. Updated `AGENTS.md`, root `README.md`, and `docs/README.md` to direct contributors there; telemetry plan links now point at the canonical context. Removed 11 unprotected root `CONTEXT*.md` duplicates and 17 root `SPECS*.md` files after incorporating their domain contracts and acceptance criteria. The protected root `CONTEXT.md` and `context-company.md`, plus `.agents/SPECSTELEMETRYREPORT.md`, remain unchanged. Historical source filenames are retained in the specifications provenance matrix.
+
 

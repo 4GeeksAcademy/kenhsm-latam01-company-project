@@ -10,7 +10,7 @@ El plan cubre las seis metricas obligatorias del contexto de telemetria y oportu
 
 ## Catalogo de eventos
 
-`event-schemas.json` es la fuente normativa de tipos, campos, obligatoriedad y allowlists. En cada evento, la frase de hipotesis y decision explica el valor de negocio u operacion. **Obligatorio** significa requerido por `CONTEXTTELEMETRY.md`; **Oportunidad** es una extension propuesta.
+`event-schemas.json` es la fuente normativa de tipos, campos, obligatoriedad y allowlists. En cada evento, la frase de hipotesis y decision explica el valor de negocio u operacion. **Obligatorio** significa requerido por la sección Telemetría de [`contexto-maestro.md`](../brasaland/contexto-maestro.md); **Oportunidad** es una extension propuesta.
 
 ### Inventario y compras
 
@@ -156,7 +156,7 @@ La publicacion stream no es una promesa de ejecucion exactamente una vez: consum
 
 ## Criterios de aceptacion
 
-- Los seis `event_type` obligatorios y sus dimensiones minimas coinciden con `CONTEXTTELEMETRY.md`.
+- Los seis `event_type` obligatorios y sus dimensiones minimas coinciden con la sección Telemetría de [`contexto-maestro.md`](../brasaland/contexto-maestro.md).
 - Cada registro en `event-schemas.json` tiene hipotesis, decision, entrega, sensibilidad, campos tipados y allowlist cerrada.
 - El esquema valida con JSON Schema draft-07; cada evento contiene todos los campos de envelope requeridos.
 - Ningun evento agrega credenciales, nombres, datos de clientes, payload libre o conversion de moneda.

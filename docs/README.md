@@ -9,5 +9,7 @@ This folder holds **cross-cutting documentation** for the monorepo: architecture
 
 ## Guides
 
+- [Brasaland master context](./brasaland/contexto-maestro.md): canonical company, domain, data, agent, and privacy context.
+- [Brasaland master specifications](./brasaland/especificaciones-maestro.md): consolidated milestone requirements and acceptance criteria.
 - [Brasaland manager agent memory design](./agent-memory/memory-design.md): architecture, privacy, consent, retention, and verified approval/rejection cycles.
 - [Brasaland manager agent guardrail harness](./agent-memory/guardrail-harness.md): scope policy, injection isolation, output validation, abuse cases, and metrics.
