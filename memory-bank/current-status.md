@@ -86,6 +86,12 @@ Added a reproducible Random Forest sales-forecast pipeline with causal lag/rolli
 
 Added a separate time-aware model evaluation with five expanding 12-month folds, fold-local causal feature construction, recursive validation forecasts, MAE/RMSE summaries, learning-curve generation, and evidence-based fit diagnosis/action recommendations. The split/order and validation-label invariance tests pass. Since the original sales CSV is still missing, no real fold results, learning-curve image, or fit classification can be asserted yet; `data/eval/evaluation_report.md` records this limitation and the evaluation command will populate measured outputs when the source arrives.
 
+## LangGraph Agent Decision (2026-10-11)
+
+Added the explicit LangGraph-based Brasaland assistant flow with a minimal `AgentState` (question, context, answer, trace, error), conditional routing, and `MemorySaver` checkpointing. The graph reuses the existing knowledge pipeline via `retrieve()` and `generate_answer(question, context)` without wrapping the monolithic `query()` function. Every run logs a structured trace of node execution order, and the service exposes it through `POST /agent/query` with a clean error payload instead of a raw stack trace.
+
+The focused validation suite in `tests/pipelines/test_langgraph_agent.py` checks the trace order, the honest no-context route, and answer anchoring to recovered RAG context. The regression tests for the existing knowledge pipeline still pass, and the route smoke test verifies the final API contract.
+
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
