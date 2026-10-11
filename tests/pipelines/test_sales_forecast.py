@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from scripts.sales_forecast import _feature_row, evaluate_forecast, make_training_matrix, split_sales
+from scripts.evaluate_sales_forecast import evaluate_fold, evaluate_temporal_cv, temporal_splits
+from scripts.sales_forecast import _feature_row, evaluate_forecast, make_model, make_training_matrix, split_sales
 
 
 def monthly_series() -> pd.DataFrame:
@@ -58,3 +59,52 @@ def test_gini_still_measures_low_month_ranking_after_long_term_growth() -> None:
     metrics = evaluate_forecast(train, test, actual)
 
     assert metrics["gini_low_month_detection"] == 1
+
+
+def test_temporal_folds_preserve_order_and_do_not_overlap() -> None:
+    training_period, _ = split_sales(monthly_series())
+    folds = temporal_splits(training_period)
+
+    assert len(folds) == 5
+    previous_validation_end = -1
+    for train_indices, validation_indices in folds:
+        assert np.all(np.diff(train_indices) > 0)
+        assert np.all(np.diff(validation_indices) > 0)
+        assert train_indices[-1] < validation_indices[0]
+        assert validation_indices[0] > previous_validation_end
+        assert set(train_indices).isdisjoint(set(validation_indices))
+        previous_validation_end = validation_indices[-1]
+
+
+def test_validation_values_cannot_change_fold_training_or_predictions() -> None:
+    training_period, _ = split_sales(monthly_series())
+    train_indices, validation_indices = temporal_splits(training_period)[0]
+    original_metrics, original_predictions = evaluate_fold(
+        training_period,
+        train_indices,
+        validation_indices,
+        model_factory=lambda: make_model(10),
+    )
+
+    altered_sales = training_period.copy()
+    altered_sales.loc[validation_indices, "revenue_usd"] = 9_999_999
+    altered_metrics, altered_predictions = evaluate_fold(
+        altered_sales,
+        train_indices,
+        validation_indices,
+        model_factory=lambda: make_model(10),
+    )
+
+    assert np.isclose(original_metrics["train_rmse_usd"], altered_metrics["train_rmse_usd"])
+    np.testing.assert_array_equal(original_predictions, altered_predictions)
+
+
+def test_temporal_cv_reports_five_expanding_folds_and_error_metrics() -> None:
+    training_period, _ = split_sales(monthly_series())
+    results = evaluate_temporal_cv(training_period, model_factory=lambda: make_model(10))
+
+    assert len(results) == 5
+    assert results["training_months"].tolist() == [36, 48, 60, 72, 84]
+    assert results["validation_months"].tolist() == [12] * 5
+    assert results["validation_start"].is_monotonic_increasing
+    assert results[["train_mae_usd", "validation_mae_usd", "train_rmse_usd", "validation_rmse_usd"]].notna().all().all()
