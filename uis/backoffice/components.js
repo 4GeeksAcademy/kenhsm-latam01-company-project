@@ -5,6 +5,7 @@ export function Sidebar() {
       <nav>
         <a href="#operations">Operaciones</a>
         <a href="./reporting.html">Reporte semanal</a>
+        <a href="./telemetry.html">Reporte técnico</a>
         <a href="#incident-management">Gestor de incidencias</a>
         <a href="#incident-analysis">Análisis CSV</a>
         <a href="#procurement">Compras</a>
