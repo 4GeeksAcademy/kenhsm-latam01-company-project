@@ -107,6 +107,16 @@ def make_training_matrix(train: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     return features, target
 
 
+def make_model(n_estimators: int = 500) -> RandomForestRegressor:
+    return RandomForestRegressor(
+        n_estimators=n_estimators,
+        max_depth=5,
+        min_samples_leaf=2,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    )
+
+
 def recursive_forecast(
     model: RandomForestRegressor,
     train: pd.DataFrame,
@@ -120,7 +130,7 @@ def recursive_forecast(
     for month in test["month"]:
         features = pd.DataFrame([_feature_row(history, month)])
         tree_predictions = np.asarray(
-            [tree.predict(features)[0] for tree in model.estimators_], dtype=float
+            [tree.predict(features.to_numpy())[0] for tree in model.estimators_], dtype=float
         )
         point_forecast = float(tree_predictions.mean())
         point_forecasts.append(point_forecast)
@@ -208,13 +218,7 @@ def run_forecast(data_path: Path, output_dir: Path) -> dict[str, float | str | N
     sales = load_sales(data_path)
     train, test = split_sales(sales)
     features, target = make_training_matrix(train)
-    model = RandomForestRegressor(
-        n_estimators=500,
-        max_depth=5,
-        min_samples_leaf=2,
-        random_state=RANDOM_STATE,
-        n_jobs=-1,
-    )
+    model = make_model()
     model.fit(features, target)
     predictions, lower, upper = recursive_forecast(model, train, test)
     metrics = evaluate_forecast(train, test, predictions)
