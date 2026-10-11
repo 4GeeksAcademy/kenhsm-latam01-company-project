@@ -59,7 +59,11 @@ def test_agent_dispatches_incident_action_only_through_discovered_mcp_tool(monke
 def test_agent_routes_normal_questions_to_rag_without_mcp(monkeypatch):
     monkeypatch.setattr(agent_graph, "MultiServerMCPClient", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("MCP should not run for RAG query")))
     monkeypatch.setattr(agent_graph, "retrieve", lambda *args, **kwargs: [{"text": "La política de residuos de Brasaland."}])
-    monkeypatch.setattr(agent_graph, "generate_answer", lambda question, context: "La política de residuos de Brasaland.")
+    monkeypatch.setattr(
+        agent_graph,
+        "_generate_structured_response",
+        lambda question, context, memories: ("La política de residuos de Brasaland.", None),
+    )
 
     import asyncio
     result = asyncio.run(agent_graph.query_agent("¿Cuál es la política de residuos?"))

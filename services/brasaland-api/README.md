@@ -22,6 +22,7 @@ src/brasaland_api/
 │   └── deps.py              # get_current_user / require_admin dependencies
 └── modules/
     ├── auth/                # Login, reset/change password, current user
+    ├── agent/               # Manager support, RAG/MCP orchestration, approved episodic memory
     ├── users/                # /users CRUD (credentials only)
     ├── profiles/             # /profiles/me (display name + contact data)
     ├── incidents/            # /api/incidents ticket lifecycle (JWT protected)
@@ -60,6 +61,8 @@ Interactive docs: http://127.0.0.1:8010/docs
 
 Unauthenticated requests to protected routes return `401`. Requests to a resource that belongs to another user (e.g. updating another user's credentials without an admin role) return `403`.
 
+Authenticated manager-agent requests keep approved episodic memory private to the JWT subject. `GET /agent/memory` reads approved notes and `GET /agent/memory/audit` reads proposal/decision history; both are read-only. Memory writes happen only after explicit approval or a safe explicit edit in the agent conversation.
+
 ## Environment variables
 
 | Variable | Description |
@@ -68,6 +71,7 @@ Unauthenticated requests to protected routes return `401`. Requests to a resourc
 | `JWT_ALGORITHM` | Signing algorithm (default `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
+| `AGENT_MEMORY_DB_PATH` | SQLite file for per-user approved agent notes and proposal audit; defaults to `~/.local/state/brasaland/agent_memory.sqlite3`. Set to a durable volume in deployment. |
 | `SUPABASE_URL` | Supabase project URL used by the telemetry batch writer. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret server-side key used only by FastAPI; never expose it to the browser or commit it. |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
