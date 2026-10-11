@@ -76,6 +76,8 @@ Implemented the weekly Prefect flow in `data/pipelines/pipeline.py`, with pure w
 
 The CLI was verified in local validation mode without Supabase credentials. Production deployment still requires the migration and PostgREST exposure of `reporting`. Existing telemetry persistence does not retain the envelope `eventId`; the pipeline defensively deduplicates by the persisted row `id` and does not change the telemetry writer. The source also has no explicit per-location completeness signal, so zero-filled locations must be interpreted with that limitation.
 
+The backoffice now has a weekly business report page at `uis/backoffice/reporting.html`, using the authenticated reporting API and showing all five weekly location KPIs. The requested Milestone 3 Prefect subflow refactor and `tests/pipelines/test_pipeline.py` are still pending: the editor's Copilot content exclusion rejects reads and edits under `data/`, and this task did not bypass that restriction.
+
 `uv add` could not resolve the existing `services/brasaland-api/uv.lock` because it contains duplicate `certifi` package records; Prefect is declared in `pyproject.toml` and installed in the active environment, but the lock still needs regeneration.
 
 ## AUTH-03 Decision
