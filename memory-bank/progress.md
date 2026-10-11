@@ -9,6 +9,7 @@
 5. Existe `services/brasaland-api` (FastAPI + TinyDB + uv) con autenticacion JWT, CRUD de `users`, `profiles`, y proteccion de rutas sensibles (AUTH-01).
 6. AUTH-03 implementado en backend y frontend: recuperacion por email con Resend, tokens persistidos de un solo uso, y cambio autenticado de contraseña; suite backend y build/lint frontend verificados.
 7. Implemented the weekly Prefect business KPI pipeline, reporting schema migration, and JWT-protected reporting endpoints; local CLI and focused data/API tests pass. Production Supabase configuration and telemetry-source completeness remain deployment prerequisites.
+8. Added the explicit LangGraph agent flow for Brasaland knowledge retrieval with conditional routing, checkpointing, structured trace logging, and a `/agent/query` API endpoint. The graph reuses the existing RAG retrieval and generation functions while keeping the routing logic inspectable and testable.
 
 ## Proximos pasos previstos
 
