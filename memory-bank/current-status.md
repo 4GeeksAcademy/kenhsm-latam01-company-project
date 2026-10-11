@@ -80,6 +80,10 @@ The backoffice now has a weekly business report page at `uis/backoffice/reportin
 
 `uv add` could not resolve the existing `services/brasaland-api/uv.lock` because it contains duplicate `certifi` package records; Prefect is declared in `pyproject.toml` and installed in the active environment, but the lock still needs regeneration.
 
+## Sales Forecast Decision (2026-10-11)
+
+Added a reproducible Random Forest sales-forecast pipeline with causal lag/rolling/calendar features, recursive 2024-2025 evaluation, a tree-spread variability band, and documented MSE, PSI, low-month Gini, and explicitly defined seasonal-naive K2 skill metrics. The requested `data/raw/brasaland_sales.csv` is absent from this checkout, so the real model, metrics, and visualization cannot be generated until that source file is provided; no replacement data was simulated.
+
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
