@@ -8,3 +8,7 @@ Each subfolder inside `mcps/` must correspond to **one specific MCP server** (fo
 - **Recommendation**: document the tools and resources exposed by each MCP server.
 
 > _Spanish version: [README.es.md](./README.es.md)._
+
+## Available servers
+
+- [`brasaland`](./brasaland/README.md): OAuth-protected Streamable HTTP tools for incidents and read-only inventory.

@@ -92,6 +92,12 @@ Added the explicit LangGraph-based Brasaland assistant flow with a minimal `Agen
 
 The focused validation suite in `tests/pipelines/test_langgraph_agent.py` checks the trace order, the honest no-context route, and answer anchoring to recovered RAG context. The regression tests for the existing knowledge pipeline still pass, and the route smoke test verifies the final API contract.
 
+## Brasaland MCP Decision (2026-10-11)
+
+Added `mcps/brasaland` as an independent Streamable HTTP MCP server. It uses `mcpauth` as an OAuth/OIDC resource server (JWT issuer, JWKS, audience, global `mcp:access`, and per-tool scopes), publishes Protected Resource Metadata, and documents schemas, scopes, and error behavior. Incident tools call the registered JWT-protected Incidents Manager API; status changes use only `/api/incidents/{id}/status`. Inventory has a read tool and an explicit write-denial tool which never calls the API.
+
+The LangGraph tool branch discovers/invokes tools through `langchain-mcp-adapters`; regular questions retain the existing RAG branch. MCP-server and service dependencies are declared in their respective uv projects, with the adapter also present in the root environment used by graph tests. Focused MCP, agent, and incidents API tests pass. Hosted MCP Playground testing is pending deployment-time OAuth issuer/client provisioning and public port forwarding; no provider credentials were available in this workspace.
+
 ## AUTH-03 Decision
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
