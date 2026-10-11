@@ -32,7 +32,10 @@ def test_langgraph_trace_runs_retrieve_before_generate(monkeypatch):
         return "Con tarjeta puedes ganar Brasa Points."
 
     monkeypatch.setattr("brasaland_api.modules.agent.graph.retrieve", fake_retrieve)
-    monkeypatch.setattr("brasaland_api.modules.agent.graph.generate_answer", fake_generate)
+    monkeypatch.setattr(
+        "brasaland_api.modules.agent.graph._generate_structured_response",
+        lambda question, context, memories: (fake_generate(question, context), None),
+    )
 
     graph = build_agent_graph()
     result = graph.invoke({"question": "¿Cómo ganan puntos?"}, config={"configurable": {"thread_id": "trace-order"}})
@@ -73,7 +76,10 @@ def test_langgraph_keeps_answer_anclado_al_contexto(monkeypatch):
         return "Los residuos orgánicos deben separarse de los reciclables en cada local."
 
     monkeypatch.setattr("brasaland_api.modules.agent.graph.retrieve", fake_retrieve)
-    monkeypatch.setattr("brasaland_api.modules.agent.graph.generate_answer", fake_generate)
+    monkeypatch.setattr(
+        "brasaland_api.modules.agent.graph._generate_structured_response",
+        lambda question, context, memories: (fake_generate(question, context), None),
+    )
 
     graph = build_agent_graph()
     result = graph.invoke({"question": "¿Cómo se separan los residuos orgánicos?"}, config={"configurable": {"thread_id": "anchored-context"}})

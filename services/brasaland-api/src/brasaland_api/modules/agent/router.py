@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from brasaland_api.modules.agent.graph import query_agent
+from brasaland_api.modules.agent.memory import AgentMemoryStore
 from brasaland_api.core.deps import get_current_user
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -30,6 +31,18 @@ class AgentQueryResponse(BaseModel):
     answer: str
     trace: list[dict[str, Any]] = []
     error: str | None = None
+    memory_proposal: dict[str, Any] | None = None
+    memory_decision: dict[str, Any] | None = None
+
+
+@router.get("/memory")
+def read_agent_memory(current_user=Depends(get_current_user)) -> list[dict[str, Any]]:
+    return AgentMemoryStore().read_memories(current_user.id)
+
+
+@router.get("/memory/audit")
+def read_agent_memory_audit(current_user=Depends(get_current_user)) -> list[dict[str, Any]]:
+    return AgentMemoryStore().audit_log(current_user.id)
 
 
 @router.post("/query", response_model=AgentQueryResponse)
@@ -37,6 +50,7 @@ async def ask_agent(
     payload: AgentQueryRequest,
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
 ) -> AgentQueryResponse:
+    actor_id = None
     if payload.tool_action:
         if credentials is None:
             raise HTTPException(
@@ -44,10 +58,12 @@ async def ask_agent(
                 detail="Se requiere autenticación para ejecutar herramientas del agente.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        get_current_user(credentials.credentials)
+    if credentials is not None:
+        actor_id = get_current_user(credentials.credentials).id
     try:
         result = await query_agent(
             payload.question,
+            actor_id=actor_id,
             tool_action=payload.tool_action,
             tool_arguments=payload.tool_arguments,
         )
@@ -55,6 +71,8 @@ async def ask_agent(
             answer=result.get("answer", ""),
             trace=result.get("trace", []),
             error=result.get("error"),
+            memory_proposal=result.get("memory_proposal"),
+            memory_decision=result.get("memory_decision"),
         )
     except Exception:
         return JSONResponse(

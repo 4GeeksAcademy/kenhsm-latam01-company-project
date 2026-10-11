@@ -102,4 +102,12 @@ The LangGraph tool branch discovers/invokes tools through `langchain-mcp-adapter
 
 Password-reset JWTs use a dedicated `purpose` claim and a random `jti`; only the SHA-256 hash of that ID and its expiration are persisted in TinyDB. The 30-minute default is configurable only within 15–60 minutes. Consuming a token updates the password and removes its persisted record under a process-local lock, preventing reuse. Reset emails are delivered through Resend using `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; `/auth/forgot-password` returns the same confirmation for known and unknown addresses and suppresses delivery failures from the response. The frontend reset routes are public; `/account/change-password` remains behind `AuthGuard`.
 
+## Agent Memory Decision (2026-10-11)
+
+Extended the existing manager-support LangGraph with authenticated, owner-scoped episodic SQLite memory outside the source tree and outside Qdrant `brasaland_knowledge`. Memory is explicit: load approved notes, resolve one pending proposal before normal RAG/MCP routing, then persist only an approved or safe-edited proposal. A single structured model completion supplies the answer and optional proposal. User decisions, source message, confidence, status, and timestamps are auditable through the `memory_proposals` table and authenticated `/agent/memory/audit`; `/agent/memory` exposes the manager's approved notes read-only.
+
+Privacy controls block customer/Brasa Points and payroll/compensation data from facts, scope, reasons, and source messages. A JWT-derived owner ID scopes each note; the prompt treats notes as unverified and subordinate to company RAG. Explicit bilingual decision classification fails closed on ambiguity/contradiction. Pending proposals expire after 7 days; facts after 180 days; resolved audit records after 730 days. Facts consolidate by owner/category/scope and are capped at 50 per owner, with only 8 loaded per turn. The default SQLite file is `~/.local/state/brasaland/agent_memory.sqlite3`; deployment must set `AGENT_MEMORY_DB_PATH` to durable storage.
+
+Approval, rejection, edit, ambiguity, non-memorable examples, privacy, expiry, caps, and owner-isolated API reads are covered in `services/brasaland-api/tests/test_agent_memory.py` and `test_agent_memory_flow.py`. The OIDC/MCP Playground prerequisite from the prior milestone remains unrelated and still requires deployment credentials.
+
 

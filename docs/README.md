@@ -6,3 +6,7 @@ This folder holds **cross-cutting documentation** for the monorepo: architecture
 - **Recommendation**: organize docs by topic (architecture, deployment, data, security, observability, etc.) and keep links from each component’s README to these guides.
 
 > _Spanish version: [README.es.md](./README.es.md)._
+
+## Guides
+
+- [Brasaland manager agent memory design](./agent-memory/memory-design.md): architecture, privacy, consent, retention, and verified approval/rejection cycles.
