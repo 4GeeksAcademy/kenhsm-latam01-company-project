@@ -24,13 +24,14 @@ src/brasaland_api/
     ├── auth/                # Login, reset/change password, current user
     ├── users/                # /users CRUD (credentials only)
     ├── profiles/             # /profiles/me (display name + contact data)
+    ├── incidents/            # /api/incidents ticket lifecycle (JWT protected)
     ├── operations/           # /operations/sales, /operations/inventory (protected)
     ├── supply_chain/         # /supply-chain/suppliers, /supply-chain/purchase-orders (protected)
     ├── telemetry/            # POST /telemetry/events (temporary batch receiver)
     └── hr/                   # /hr/employees (protected)
 ```
 
-`operations`, `supply_chain`, and `hr` are minimal stub endpoints (in-memory data) that exist to prove that pre-existing sensitive routes outside `/users` and `/auth` are now guarded by `get_current_user`. They will be replaced by their full implementations (with Postgres/Supabase persistence) in later tickets.
+`operations`, `supply_chain`, and `hr` are minimal stub endpoints (in-memory data) that exist to prove that pre-existing sensitive routes outside `/users` and `/auth` are now guarded by `get_current_user`. The Incidents Manager is also in-memory and its full ticket API is JWT-protected. They will be replaced by their full implementations (with Postgres/Supabase persistence) in later tickets.
 
 ## Setup
 

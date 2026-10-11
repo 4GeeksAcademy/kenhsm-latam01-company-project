@@ -1,0 +1,26 @@
+[project]
+name = "brasaland-mcp"
+version = "0.1.0"
+description = "OAuth-protected MCP server for Brasaland incidents and inventory tools."
+requires-python = ">=3.12"
+dependencies = [
+    "brasaland-shared",
+    "fastmcp>=2.0",
+    "mcpauth>=0.1",
+    "httpx>=0.28",
+    "pydantic-settings>=2.0",
+    "uvicorn[standard]>=0.30",
+]
+
+[tool.uv.sources]
+brasaland-shared = { path = "../../packages/shared" }
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+brasaland-mcp = "brasaland_mcp.server:run"
+
+[build-system]
+requires = ["uv_build>=0.8"]
+build-backend = "uv_build"

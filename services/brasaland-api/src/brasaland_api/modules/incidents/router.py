@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.incidents import services
 from brasaland_api.modules.incidents.schemas import IncidentCreate, IncidentOut, IncidentStatusUpdate, IncidentSummary
 from brasaland_shared.incidents import validate_incident_payload
 
-router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+router = APIRouter(
+    prefix="/api/incidents",
+    tags=["incidents"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("", response_model=IncidentOut, status_code=status.HTTP_201_CREATED)
