@@ -31,6 +31,7 @@ from brasaland_api.modules.supply_chain.router import router as supply_chain_rou
 from brasaland_api.modules.telemetry.router import router as telemetry_router
 from brasaland_api.modules.users.router import router as users_router
 from brasaland_api.modules.incidents.router import router as incidents_router
+from brasaland_api.modules.rfp_intake.router import router as rfp_intake_router
 from services.reporting.router import router as reporting_router
 
 settings = get_settings()
@@ -91,6 +92,7 @@ app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(operations_router)
 app.include_router(incidents_router)
+app.include_router(rfp_intake_router)
 app.include_router(supply_chain_router)
 app.include_router(hr_router)
 app.include_router(telemetry_router)

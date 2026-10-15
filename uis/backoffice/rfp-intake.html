@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Recepción y seguimiento de solicitudes RFP de Brasaland." />
+  <meta name="theme-color" content="#f3f6f4" />
+  <link rel="icon" href="data:," />
+  <title>Brasaland | Recepción de RFP</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="rfp-intake.css" />
+</head>
+<body>
+  <div class="rfp-shell">
+    <aside class="sidebar">
+      <h1>Backoffice</h1>
+      <nav aria-label="Navegación principal">
+        <a href="./index.html">Operaciones</a>
+        <a href="./reporting.html">Reporte semanal</a>
+        <a href="./telemetry.html">Reporte técnico</a>
+        <a href="./rfp-intake.html" aria-current="page">Recepción RFP</a>
+      </nav>
+    </aside>
+    <main class="content rfp-page">
+      <header class="rfp-heading">
+        <div>
+          <p class="kicker">Marketing · Camila Ospina</p>
+          <h2>Recepción de RFP</h2>
+        </div>
+        <button id="logout-button" class="secondary-button" type="button" hidden>Cerrar sesión</button>
+      </header>
+
+      <p id="page-status" class="form-status" role="status" aria-live="polite">Inicia sesión para consultar los tickets.</p>
+
+      <form id="login-form" class="rfp-login">
+        <h3>Acceso de equipo</h3>
+        <label>Correo<input name="username" type="email" autocomplete="username" required /></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
+        <button type="submit">Iniciar sesión</button>
+      </form>
+
+      <section id="rfp-workspace" hidden>
+        <section class="rfp-upload" aria-labelledby="upload-title">
+          <div>
+            <p class="kicker">Nuevo expediente</p>
+            <h3 id="upload-title">Subir solicitud</h3>
+          </div>
+          <form id="upload-form">
+            <label for="rfp-file">Documento PDF <span>Máximo 25 MB</span></label>
+            <div class="rfp-upload-controls">
+              <input id="rfp-file" name="file" type="file" accept="application/pdf,.pdf" required />
+              <button id="upload-button" type="submit">Crear ticket</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="rfp-ticket-layout">
+          <section class="ticket-queue" aria-labelledby="queue-title">
+            <div class="section-heading">
+              <div><p class="kicker">Seguimiento</p><h3 id="queue-title">Tickets recientes</h3></div>
+              <button id="refresh-button" class="icon-button" type="button" aria-label="Actualizar tickets" title="Actualizar tickets">↻</button>
+            </div>
+            <div id="ticket-list" class="ticket-list" aria-live="polite"></div>
+          </section>
+
+          <section id="ticket-detail" class="ticket-detail" aria-labelledby="detail-title" aria-live="polite">
+            <p class="detail-empty">Selecciona un ticket para consultar su análisis.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./rfp-intake.js"></script>
+</body>
+</html>

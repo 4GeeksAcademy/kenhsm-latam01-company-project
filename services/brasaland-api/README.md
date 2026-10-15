@@ -5,7 +5,8 @@ FastAPI backend implementing authentication and route protection for the Brasala
 ## Stack
 
 - **FastAPI** + **Uvicorn**
-- **TinyDB** — the only storage for `User` and `Profile` records (now and after any future Supabase/PostgreSQL integration for other domains).
+- **TinyDB** — storage for `User` and `Profile` records.
+- **Supabase/PostgreSQL via PostgREST** — persistent RFP tickets, metadata, and department sections; telemetry and reporting retain their existing adapters.
 - **python-jose** — JWT signing/decoding.
 - **libpass[bcrypt]** — password hashing (drop-in fork of `passlib`, imported as `from passlib.hash import bcrypt`).
 - **uv** — dependency and project management.
@@ -32,7 +33,7 @@ src/brasaland_api/
     └── hr/                   # /hr/employees (protected)
 ```
 
-`operations`, `supply_chain`, and `hr` are minimal stub endpoints (in-memory data) that exist to prove that pre-existing sensitive routes outside `/users` and `/auth` are now guarded by `get_current_user`. The Incidents Manager is also in-memory and its full ticket API is JWT-protected. They will be replaced by their full implementations (with Postgres/Supabase persistence) in later tickets.
+`operations`, `supply_chain`, and `hr` are minimal stub endpoints (in-memory data) that exist to prove that pre-existing sensitive routes outside `/users` and `/auth` are now guarded by `get_current_user`. The Incidents Manager remains TinyDB-backed. RFP ticket data is separate and stored in Supabase/PostgreSQL; its graph lives in `data/pipelines/rfp_intake/` rather than in the router.
 
 ## Setup
 
@@ -94,3 +95,17 @@ Analysis uses Pandas and remains separate from the weekly business pipeline in `
 | `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES` | Reset token lifetime, restricted to 15–60 minutes (default `30`). |
 
 Run the API unit tests from this directory with `PYTHONPATH=src python -m unittest discover -s tests`.
+
+## RFP Ticket Intake
+
+Apply `migrations/003_create_rfp_intake.sql` to the Supabase project before enabling the RFP endpoints. The migration creates `public.rfp_tickets`, `public.rfp_metadata`, and `public.department_sections`, with service-role access. The API uses the existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` settings; configure them only in the backend environment.
+
+`POST /rfp-intake` accepts one PDF (maximum 25 MB), writes the artifact to repository `data/raw/rfp-intake/`, creates an `analizando` ticket, and returns `202` with `ticket_id`. FastAPI `BackgroundTasks` then invokes the dedicated LangGraph under `data/pipelines/rfp_intake/`. `GET /rfp-intake` lists recent tickets and `GET /rfp-intake/{ticket_id}` returns status, metadata, department sections, processing error, and synthesizer handoff. All routes require JWT authentication.
+
+The PDF is converted with MarkItDown before classification. Readability uses `py-readability-metrics` when tokenizer resources are available and a deterministic local estimate otherwise. A failed background run records `processing_error` and does not falsely complete the ticket. The in-process task is not a durable queue, so production deployments requiring restart recovery should replace dispatch with a durable worker while retaining this API and graph contract.
+
+Focused RFP API and pipeline tests:
+
+```bash
+PYTHONPATH=src:../.. uv run pytest --import-mode=importlib tests/test_rfp_intake.py ../../tests/pipelines/test_rfp_intake.py -q
+```

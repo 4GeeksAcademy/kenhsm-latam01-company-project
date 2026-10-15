@@ -22,5 +22,7 @@ Current service entrypoints:
 2. `brasaland-api/` is the central FastAPI backend with JWT authentication, `users`/`profiles` (TinyDB-only), and route protection (AUTH-01).
 3. `brasaland-api/` also exposes the centralized incident lifecycle at `/api/incidents` and persists incident records in TinyDB.
 4. `reporting/` contains authenticated business KPI endpoints backed by Prefect flows in `data/pipelines/`, separate from technical telemetry.
+5. `brasaland-api/` exposes the authenticated RFP ticket flow at `/rfp-intake`; its LangGraph is owned by `data/pipelines/rfp_intake/` and persists to Supabase/PostgreSQL.
+5. `brasaland-api/` exposes the authenticated RFP ticket flow at `/rfp-intake`; its LangGraph is owned by `data/pipelines/rfp_intake/` and persists to Supabase/PostgreSQL.
 
 > _Spanish version: [README.es.md](./README.es.md)._

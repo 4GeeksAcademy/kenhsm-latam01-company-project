@@ -24,6 +24,8 @@ dependencies = [
     "uvicorn[standard]>=0.53.0",
     "langchain-mcp-adapters>=0.3.2",
     "pandas>=3.0.6",
+    "markitdown[pdf]>=0.1.8",
+    "py-readability-metrics>=1.4.5",
 ]
 
 [tool.uv.sources]
