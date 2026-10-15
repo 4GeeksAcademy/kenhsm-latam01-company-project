@@ -16,6 +16,7 @@
 12. Consolidated Brasaland context and milestone requirements into `docs/brasaland/contexto-maestro.md` and `docs/brasaland/especificaciones-maestro.md`; updated `AGENTS.md`/README links and retired 28 unprotected root duplicates. Kept the protected context files and `.agents` telemetry-report specification unchanged.
 13. Implemented the separate technical `GET /telemetry/report` pipeline with UTC SQL filtering, Pandas event/error/latency/auth metrics, 7-day default window, and 60-second report cache. Local deterministic tests pass; live validation needs Supabase credentials and real event rows not present in this environment.
 14. Added a backoffice technical telemetry dashboard at `uis/backoffice/telemetry.html` with UTC period filters and tables for the report metrics, plus loading/error/empty/retry states. Static asset syntax checks pass. Supabase is not configured, so the page will show the API's safe unavailable state until backend credentials and real event data are supplied.
+15. Added Hito 9 Part 1 RFP intake: authenticated PDF ticket upload in the existing backoffice/API, MarkItDown conversion, a dedicated LangGraph classifier/orchestrator/parallel workers/synthesizer, Supabase tables for tickets/metadata/department aspects, and a ticket-status polling UI. Focused pipeline and API suites pass; applying the migration and testing against the absent sample PDFs remain prerequisites.
 
 ## Proximos pasos previstos
 

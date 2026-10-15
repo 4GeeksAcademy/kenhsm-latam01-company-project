@@ -44,3 +44,11 @@ Open `http://localhost:3000/reporting.html` for the weekly location cost and was
 ## Technical Telemetry Dashboard
 
 Open `http://localhost:3000/telemetry.html`. It reads `GET /telemetry/report` from `services/brasaland-api`; `NEXT_PUBLIC_TELEMETRY_REPORT_ENDPOINT` in `.env.local` sets the API URL (default `http://127.0.0.1:8000/telemetry/report`). The page supports optional UTC start/end date-times and shows event volume, error rate, API latency, and login failure rate. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the backend service's private `.env` to populate it; without them the API returns a safe unavailable state. Never put these server credentials in the UI's `.env.local`.
+
+## RFP Ticket Intake
+
+Open `http://localhost:3000/rfp-intake.html`. The page reuses the authenticated API token at `brasaland_access_token` and includes the existing login flow if no token is present. `NEXT_PUBLIC_RFP_API_ENDPOINT` in `.env.local` may set the API base URL; otherwise it uses `NEXT_PUBLIC_REPORTING_API_ENDPOINT` or `http://127.0.0.1:8000`.
+
+PDFs are sent to `POST /rfp-intake` on the existing `services/brasaland-api`; the endpoint saves them under `data/raw/rfp-intake/`, creates an `analizando` ticket, and starts the `data/pipelines/rfp_intake/` graph in a background task. The view polls ticket state and renders metadata, open questions, department aspects, named contacts, and the Part 2 handoff.
+
+Before enabling RFP intake, apply `services/brasaland-api/migrations/003_create_rfp_intake.sql` to Supabase and ensure the API's server-side `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` can access the `public` tables. The service-role key must never be placed in `.env.local`.

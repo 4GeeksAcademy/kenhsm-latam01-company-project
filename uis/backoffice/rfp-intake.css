@@ -1,0 +1,65 @@
+.rfp-shell { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+.rfp-page { min-width: 0; }
+.rfp-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.rfp-heading h2 { margin-bottom: 0; }
+.secondary-button, .rfp-login button, .rfp-upload button { border: 0; border-radius: 6px; background: var(--primary); color: #fff; cursor: pointer; font: inherit; font-weight: 700; padding: .7rem .9rem; }
+.secondary-button { background: #374840; }
+.rfp-login { width: min(100%, 440px); display: grid; gap: .85rem; padding: 1.1rem 0; }
+.rfp-login h3 { margin: 0; }
+.rfp-login label, #upload-form label { display: grid; gap: .4rem; font-weight: 700; }
+.rfp-login input, #rfp-file { min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: .7rem; font: inherit; }
+.rfp-upload { display: grid; grid-template-columns: minmax(190px, .65fr) minmax(280px, 1.35fr); align-items: center; gap: 1rem; padding: 1rem 0 1.3rem; border-bottom: 1px solid var(--line); }
+.rfp-upload h3, .ticket-queue h3 { margin: .35rem 0 0; }
+#upload-form label span { color: #58675e; font-size: .85rem; font-weight: 400; }
+.rfp-upload-controls { display: flex; align-items: center; gap: .65rem; margin-top: .45rem; }
+.rfp-upload-controls input { flex: 1; }
+.rfp-upload button:disabled, .rfp-login button:disabled { opacity: .6; cursor: wait; }
+.rfp-ticket-layout { display: grid; grid-template-columns: minmax(240px, .75fr) minmax(0, 1.65fr); gap: 1.4rem; padding-top: 1.25rem; }
+.ticket-queue, .ticket-detail { min-width: 0; }
+.ticket-queue .section-heading { align-items: center; }
+.icon-button { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font-size: 1.35rem; }
+.ticket-list { display: grid; gap: .5rem; margin-top: .8rem; }
+.ticket-select { width: 100%; display: grid; gap: .35rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; padding: .75rem; text-align: left; }
+.ticket-select[aria-current="true"] { border-color: var(--primary); box-shadow: inset 3px 0 var(--primary); }
+.ticket-select strong { overflow-wrap: anywhere; font-size: .92rem; }
+.ticket-select small, .detail-meta { color: #58675e; }
+.status-badge { display: inline-flex; width: fit-content; border-radius: 4px; padding: .2rem .45rem; background: #e9eee9; color: #33443a; font-size: .77rem; font-weight: 700; }
+.status-badge[data-status="analizando"] { background: #fff1cd; color: #674900; }
+.status-badge[data-status="descartado"] { background: #fce9e7; color: #8c2e24; }
+.status-badge[data-status="analisis_completo"] { background: #dff1e6; color: #205b45; }
+.ticket-detail { border-top: 1px solid var(--line); padding-top: .85rem; }
+.detail-empty, .queue-empty { color: #58675e; }
+.ticket-title-row { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.ticket-title-row h3 { margin: .35rem 0; overflow-wrap: anywhere; }
+.detail-meta { margin: .25rem 0 1rem; font-size: .87rem; }
+.metadata-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1.2rem; padding: .8rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.metadata-grid div { min-width: 0; }
+.metadata-grid dt { color: #58675e; font-size: .78rem; }
+.metadata-grid dd { margin: .2rem 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.ticket-detail h4 { margin: 1.1rem 0 .55rem; }
+.department-list { display: grid; gap: .7rem; }
+.department-item { padding: .75rem 0; border-top: 1px solid var(--line); }
+.department-item header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .75rem; }
+.department-item h5 { margin: 0; font-size: .98rem; }
+.department-item p { margin: .45rem 0; }
+.department-item ul, .open-questions { margin: .35rem 0 0; padding-left: 1.2rem; }
+.processing-error { color: #8c2e24; font-weight: 700; }
+.handoff-note { margin-top: 1rem; padding: .7rem 0; border-top: 1px solid var(--line); color: #58675e; font-size: .87rem; }
+.rfp-page .form-status.is-error { color: #8c2e24; }
+
+@media (max-width: 860px) {
+  .rfp-shell { grid-template-columns: 1fr; }
+  .rfp-shell .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+  .rfp-shell .sidebar nav { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .rfp-ticket-layout { grid-template-columns: minmax(0, 1fr); }
+  .ticket-queue { border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+}
+
+@media (max-width: 560px) {
+  .rfp-page { padding: 1rem; }
+  .rfp-upload { grid-template-columns: 1fr; }
+  .rfp-upload-controls { align-items: stretch; flex-direction: column; }
+  .rfp-upload-controls button { width: 100%; }
+  .metadata-grid { grid-template-columns: 1fr; }
+  .ticket-title-row { flex-direction: column; }
+}

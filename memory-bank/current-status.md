@@ -124,4 +124,10 @@ Guardrail activation is logged with session, category, action, and count; authen
 
 Created `docs/brasaland/contexto-maestro.md` and `docs/brasaland/especificaciones-maestro.md` as canonical company context and consolidated milestone requirements. Updated `AGENTS.md`, root `README.md`, and `docs/README.md` to direct contributors there; telemetry plan links now point at the canonical context. Removed 11 unprotected root `CONTEXT*.md` duplicates and 17 root `SPECS*.md` files after incorporating their domain contracts and acceptance criteria. The protected root `CONTEXT.md` and `context-company.md`, plus `.agents/SPECSTELEMETRYREPORT.md`, remain unchanged. Historical source filenames are retained in the specifications provenance matrix.
 
+## RFP Intake Decision (2026-10-15)
+
+Added the Brasaland Part 1 RFP ticket flow to the existing FastAPI backend and backoffice. Authenticated upload stores the PDF under `data/raw/rfp-intake/`, creates an `analizando` ticket in Supabase/PostgreSQL, and returns `202` while FastAPI `BackgroundTasks` runs the dedicated graph in `data/pipelines/rfp_intake/`. The graph converts PDF to Markdown with MarkItDown, classifies requests, extracts metadata/readability estimates, fans out workers to canonical departments, and synthesizes `key_aspects` plus named contacts into the Part 2 handoff.
+
+Unknown department mentions and conflicting scope values remain open questions for Marketing instead of inventing an owner or choosing a figure. A background exception records `processing_error` and does not falsely complete the ticket. Since FastAPI `BackgroundTasks` is process-local, durable restart recovery remains a deployment follow-up. Production use requires applying `services/brasaland-api/migrations/003_create_rfp_intake.sql` and configuring existing server-side Supabase credentials. The sample PDFs are absent from this checkout, so original-document UI verification remains pending.
+
 
