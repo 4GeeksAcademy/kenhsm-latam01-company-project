@@ -106,6 +106,8 @@ Apply `migrations/003_create_rfp_intake.sql` to the Supabase project before enab
 
 The PDF is converted with MarkItDown before classification. Readability uses `py-readability-metrics` when tokenizer resources are available and a deterministic local estimate otherwise. A failed background run records `processing_error` and does not falsely complete the ticket. The in-process task is not a durable queue, so production deployments requiring restart recovery should replace dispatch with a durable worker while retaining this API and graph contract.
 
+`POST /rfp-intake/{ticket_id}/generate-draft` starts Part 2 only for an authenticated ticket in `analisis_completo` with its persisted synthesizer handoff and department sections. It atomically claims the ticket, runs the department drafting/evaluation graph under `data/pipelines/rfp_intake/`, and persists each `draft_content` and structured `evaluation_results` in the existing `department_sections` table. GET on the ticket exposes incremental status and the Part 3 handoff. Evaluation exhaustion ends in `needs_human_review`; when every section passes, the handoff is marked `ready_for_part_3` while the ticket remains at the last Part 2 state `en_evaluación` because no successful terminal state is defined in this part. Annual USD budgets above 50,000 carry the `ceo-threshold` approval gate forward without performing Part 3 approval here.
+
 Focused RFP API and pipeline tests:
 
 ```bash

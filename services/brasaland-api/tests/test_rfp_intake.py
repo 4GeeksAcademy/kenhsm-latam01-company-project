@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.main import app
 from brasaland_api.modules.rfp_intake import storage
-from brasaland_api.modules.rfp_intake.router import process_rfp_ticket
+from brasaland_api.modules.rfp_intake.router import process_rfp_draft_ticket, process_rfp_ticket
 
 
 def test_rfp_upload_requires_authentication():
@@ -17,6 +17,13 @@ def test_rfp_upload_requires_authentication():
     client = TestClient(app)
 
     response = client.post("/rfp-intake", files={"file": ("request.pdf", b"%PDF-1.4", "application/pdf")})
+
+    assert response.status_code == 401
+
+
+def test_draft_generation_requires_authentication():
+    app.dependency_overrides.clear()
+    response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
 
     assert response.status_code == 401
 
@@ -80,6 +87,111 @@ def test_ticket_get_returns_persisted_status_and_handoff():
     assert response.status_code == 200
     assert response.json()["status"] == "analisis_completo"
     assert response.json()["handoff_payload"]["ticket_id"] == "ticket-1"
+
+
+def test_draft_generation_claims_only_complete_part_one_handoff():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    ticket = {
+        "ticket_id": "ticket-1",
+        "status": "analisis_completo",
+        "handoff_payload": {"ticket_id": "ticket-1", "departments_needed": ["operaciones"]},
+        "department_sections": [{"department_id": "operaciones", "key_aspects": {"focus": "capacidad"}}],
+    }
+    try:
+        with (
+            patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
+            patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation", return_value=True) as claim,
+            patch("brasaland_api.modules.rfp_intake.router.process_rfp_draft_ticket") as process,
+        ):
+            response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert response.json() == {"ticket_id": "ticket-1", "status": "generando_borrador"}
+    claim.assert_called_once_with("ticket-1")
+    process.assert_called_once_with("ticket-1")
+
+
+def test_draft_generation_rejects_ticket_not_in_part_one_ready_state():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    try:
+        with (
+            patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value={"status": "needs_human_review"}),
+            patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation") as claim,
+        ):
+            response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    claim.assert_not_called()
+
+
+def test_background_draft_generation_persists_progress_and_final_handoff():
+    ticket = {
+        "ticket_id": "ticket-1",
+        "status": "generando_borrador",
+        "metadata": {},
+        "handoff_payload": {"ticket_id": "ticket-1", "departments_needed": ["operaciones"]},
+        "department_sections": [{"department_id": "operaciones", "key_aspects": {}}],
+    }
+    section = {
+        "department_id": "operaciones",
+        "draft_content": "Draft text",
+        "evaluation_results": {"overall_pass": False},
+    }
+    handoff = {"ticket_id": "ticket-1", "draft_generation": {"status": "needs_human_review"}}
+
+    async def fake_generation(**kwargs):
+        kwargs["status_callback"]("en_evaluación")
+        kwargs["progress_callback"]([section], handoff)
+        kwargs["status_callback"]("needs_human_review")
+        return {
+            "ticket_status": "needs_human_review",
+            "sections": {"operaciones": section},
+            "handoff_payload": handoff,
+        }
+
+    with (
+        patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
+        patch("brasaland_api.modules.rfp_intake.router.storage.persist_draft_sections") as persist,
+        patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
+        patch("brasaland_api.modules.rfp_intake.router.run_rfp_draft_generation", side_effect=fake_generation),
+    ):
+        process_rfp_draft_ticket("ticket-1")
+
+    persist.assert_called_once_with("ticket-1", [section])
+    saved_statuses = [call.args[1].get("status") for call in update.call_args_list]
+    assert "en_evaluación" in saved_statuses
+    assert "needs_human_review" in saved_statuses
+    assert update.call_args_list[-1].args[1]["handoff_payload"] == handoff
+
+
+def test_storage_claim_is_conditional_on_part_one_completion():
+    with patch("brasaland_api.modules.rfp_intake.storage._request", return_value=[{"ticket_id": "ticket-1"}]) as request:
+        assert storage.claim_draft_generation("ticket-1") is True
+
+    assert request.call_args.kwargs["params"]["status"] == "eq.analisis_completo"
+    assert request.call_args.kwargs["prefer"] == "return=representation"
+
+
+def test_storage_persists_draft_content_and_structured_evaluation_by_department():
+    section = {
+        "department_id": "operaciones",
+        "draft_content": "Draft text",
+        "evaluation_results": {"readability": {"pass": True}, "overall_pass": True},
+    }
+    with patch("brasaland_api.modules.rfp_intake.storage._request", return_value=[{"department_id": "operaciones"}]) as request:
+        storage.persist_draft_sections("ticket-1", [section])
+
+    assert request.call_args.args[:2] == ("PATCH", "department_sections")
+    assert request.call_args.kwargs["params"] == {
+        "ticket_id": "eq.ticket-1",
+        "department_id": "eq.operaciones",
+    }
+    assert request.call_args.kwargs["payload"]["draft_content"] == "Draft text"
+    assert request.call_args.kwargs["payload"]["evaluation_results"] == section["evaluation_results"]
 
 
 def test_persisted_department_aspects_include_the_named_contact():

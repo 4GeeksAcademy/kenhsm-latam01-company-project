@@ -134,4 +134,10 @@ Added the Brasaland Part 1 RFP ticket flow to the existing FastAPI backend and b
 
 Unknown department mentions and conflicting scope values remain open questions for Marketing instead of inventing an owner or choosing a figure. A background exception records `processing_error` and does not falsely complete the ticket. Since FastAPI `BackgroundTasks` is process-local, durable restart recovery remains a deployment follow-up. Production use requires applying `services/brasaland-api/migrations/003_create_rfp_intake.sql` and configuring existing server-side Supabase credentials. The sample PDFs are absent from this checkout, so original-document UI verification remains pending.
 
+## RFP Draft Generation Decision (2026-10-17)
+
+Added a separate Part 2 LangGraph under `data/pipelines/rfp_intake/` and an authenticated trigger on the existing `/rfp-intake/{ticket_id}/generate-draft` API. The graph accepts only a completed Part 1 ticket's persisted `handoff_payload`, metadata, and department sections; it does not re-read the PDF. Each active department has a dedicated prompt, while readability, relevance, and H91 compliance evaluators run concurrently. Failed sections receive concrete feedback and retry at most three times; exhausted drafts/evaluations remain persisted and travel in the handoff with `needs_human_review`.
+
+The existing `department_sections` JSONB field stores structured evaluation results; no new API process or schema migration is required. The ready-ticket claim is a conditional PostgREST PATCH from `analisis_completo`. Since H91 defines no successful Part 2 ticket terminal state and forbids inventing Part 3 states, all-passing drafts keep ticket status `en_evaluación` and set `handoff_payload.draft_generation.status=ready_for_part_3`. USD annual budgets over 50,000 carry `Mariana Restrepo` and `ceo-threshold` in the handoff for Part 3. Spanish readability uses minimum word count and maximum sentence length; English Flesch/Gunning scores remain diagnostic rather than applying an unsupported English-grade cutoff to Spanish text.
+
 
