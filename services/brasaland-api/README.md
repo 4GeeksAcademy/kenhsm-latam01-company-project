@@ -66,6 +66,8 @@ Authenticated manager-agent requests keep approved episodic memory private to th
 
 The manager-support agent's input, output, and external-content guardrails are documented in [`docs/agent-memory/guardrail-harness.md`](../../docs/agent-memory/guardrail-harness.md). The authenticated `GET /agent/guardrails/summary` endpoint reports this process's guardrail block/redirect counters for the current manager.
 
+The manager-support graph automatically routes incident references (for example, `ticket 482`) to a typed, read-only lookup against the existing TinyDB-backed Incidents Manager service layer. Lookups require an authenticated manager identity, have a 4-second timeout, and use an explicit fallback for missing records or service failures. Procedure questions remain on RAG; mixed questions consult the incident first and then retrieve procedure context. `/operations/inventory` is only an in-memory demonstration stub, so no inventory lookup tool is exposed.
+
 ## Environment variables
 
 | Variable | Description |

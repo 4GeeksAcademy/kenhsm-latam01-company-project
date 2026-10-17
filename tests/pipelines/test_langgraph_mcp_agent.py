@@ -55,7 +55,7 @@ def test_agent_dispatches_incident_action_only_through_discovered_mcp_tool(monke
         }
     }]
     assert result["answer"] == '{"id": "incident-12", "status": "resolved"}'
-    assert [step["node"] for step in result["trace"]] == ["receive_question", "input_guardrail", "load_agent_memory", "mcp_tool"]
+    assert [step["node"] for step in result["trace"]] == ["receive_question", "input_guardrail", "load_agent_memory", "source_routing", "mcp_tool"]
     assert result["trace"][-1]["tool"] == "update_incident_status"
 
 
@@ -86,4 +86,4 @@ def test_agent_routes_normal_questions_to_rag_without_mcp(monkeypatch):
     result = asyncio.run(agent_graph.query_agent("¿Cuál es la política de residuos?"))
 
     assert result["answer"] == "La política de residuos de Brasaland."
-    assert [step["node"] for step in result["trace"]] == ["receive_question", "input_guardrail", "retrieve_context", "generate_answer"]
+    assert [step["node"] for step in result["trace"]] == ["receive_question", "input_guardrail", "source_routing", "retrieve_context", "generate_answer"]

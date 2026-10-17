@@ -17,6 +17,7 @@
 13. Implemented the separate technical `GET /telemetry/report` pipeline with UTC SQL filtering, Pandas event/error/latency/auth metrics, 7-day default window, and 60-second report cache. Local deterministic tests pass; live validation needs Supabase credentials and real event rows not present in this environment.
 14. Added a backoffice technical telemetry dashboard at `uis/backoffice/telemetry.html` with UTC period filters and tables for the report metrics, plus loading/error/empty/retry states. Static asset syntax checks pass. Supabase is not configured, so the page will show the API's safe unavailable state until backend credentials and real event data are supplied.
 15. Added Hito 9 Part 1 RFP intake: authenticated PDF ticket upload in the existing backoffice/API, MarkItDown conversion, a dedicated LangGraph classifier/orchestrator/parallel workers/synthesizer, Supabase tables for tickets/metadata/department aspects, and a ticket-status polling UI. Focused pipeline and API suites pass; applying the migration and testing against the absent sample PDFs remain prerequisites.
+16. Extended `manager_support` for Hito 8 Part 2 with automatic RAG/live-incident routing, typed read-only lookup against the existing Incidents Manager, a 4-second timeout, explicit failure/not-found fallback, source-order tracing, and routing evaluations. The `/operations/inventory` endpoint is a demonstration stub, so inventory lookup remains unimplemented rather than using simulated product data.
 
 ## Proximos pasos previstos
 

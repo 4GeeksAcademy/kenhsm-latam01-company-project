@@ -126,6 +126,10 @@ Created `docs/brasaland/contexto-maestro.md` and `docs/brasaland/especificacione
 
 ## RFP Intake Decision (2026-10-15)
 
+## LangGraph External Incident Lookup (2026-10-17)
+
+Extended `manager_support` with an automatically routed, typed, read-only incident lookup against the existing TinyDB-backed Incidents Manager service layer. It resolves API IDs and imported source keys, requires an authenticated manager identity, uses a 4-second timeout, and returns an explicit honest fallback for missing records, timeouts, service failures, or unauthenticated access. Ticket-only questions use the live tool; procedure questions use RAG; mixed questions call the incident tool before RAG. Traces record selected sources and execution order. `/operations/inventory` is only an in-memory demonstration stub, so no inventory tool or simulated product data was added. Existing MCP lifecycle actions remain unchanged.
+
 Added the Brasaland Part 1 RFP ticket flow to the existing FastAPI backend and backoffice. Authenticated upload stores the PDF under `data/raw/rfp-intake/`, creates an `analizando` ticket in Supabase/PostgreSQL, and returns `202` while FastAPI `BackgroundTasks` runs the dedicated graph in `data/pipelines/rfp_intake/`. The graph converts PDF to Markdown with MarkItDown, classifies requests, extracts metadata/readability estimates, fans out workers to canonical departments, and synthesizes `key_aspects` plus named contacts into the Part 2 handoff.
 
 Unknown department mentions and conflicting scope values remain open questions for Marketing instead of inventing an owner or choosing a figure. A background exception records `processing_error` and does not falsely complete the ticket. Since FastAPI `BackgroundTasks` is process-local, durable restart recovery remains a deployment follow-up. Production use requires applying `services/brasaland-api/migrations/003_create_rfp_intake.sql` and configuring existing server-side Supabase credentials. The sample PDFs are absent from this checkout, so original-document UI verification remains pending.
