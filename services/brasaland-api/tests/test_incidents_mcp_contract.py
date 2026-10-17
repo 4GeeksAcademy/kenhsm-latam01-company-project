@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.agent import router as agent_router
 from brasaland_api.main import app
+from brasaland_api.modules.agent.incident_tools import IncidentLookupInput, lookup_incident
+from brasaland_api.modules.incidents import services
 
 
 def test_incidents_manager_requires_api_authentication():
@@ -56,6 +58,28 @@ def test_incidents_manager_create_get_and_lifecycle_transition():
         assert transitioned.json()["status"] == "in_progress"
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+def test_typed_agent_lookup_reads_existing_incidents_by_id_and_source_key():
+    incident = services.create_incident(
+        {
+            "title": "Refrigerador sin temperatura estable",
+            "description": "El refrigerador de cocina no mantiene temperatura estable.",
+            "category": "equipment_failure",
+            "status": "open",
+            "origin": "branch",
+            "branch": "medellin_centro",
+        },
+        source_key="BRS-000482",
+    )
+
+    by_id = lookup_incident(IncidentLookupInput(incident_id=incident.id))
+    by_source_key = lookup_incident(IncidentLookupInput(incident_id="BRS-000482"))
+
+    assert by_id.found and by_source_key.found
+    assert by_id.incident.id == incident.id
+    assert by_source_key.incident.status == "open"
+    assert by_source_key.incident.category == "equipment_failure"
+    assert services.get_incident(incident.id).status == "open"
 
 
 def test_rag_agent_endpoint_remains_public(monkeypatch):

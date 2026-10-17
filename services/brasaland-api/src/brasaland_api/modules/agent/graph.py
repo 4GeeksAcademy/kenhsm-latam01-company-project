@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -28,6 +29,7 @@ from brasaland_api.modules.agent.guardrails import (
     sanitize_untrusted_text,
     validate_model_output,
 )
+from brasaland_api.modules.agent.incident_tools import IncidentLookupInput, lookup_incident as lookup_incident_record
 
 
 class AgentState(TypedDict):
@@ -35,6 +37,8 @@ class AgentState(TypedDict):
     actor_id: str | None
     tool_action: str | None
     tool_arguments: dict[str, Any]
+    source_route: str
+    incident_id: str | None
     context: list[dict[str, Any]]
     memory_context: list[dict[str, Any]]
     pending_proposal: dict[str, Any] | None
@@ -48,6 +52,19 @@ class AgentState(TypedDict):
     answer: str
     trace: list[dict[str, Any]]
     error: str | None
+
+
+INCIDENT_LOOKUP_TIMEOUT_SECONDS = 4.0
+_INCIDENT_REFERENCE = re.compile(
+    r"\b(?:ticket|incidencia|incidente|incident)\s*(?:n(?:ro|um(?:ero)?)?\.?\s*)?(?:#\s*)?"
+    r"(BRS-\d{6}|incident-[\w-]+|[0-9a-fA-F-]{8,}|\d+)\b",
+    re.IGNORECASE,
+)
+_PROCEDURE_REQUEST = re.compile(
+    r"\b(?:procedim\w*|procedure\w*|pol[ií]tica\w*|polic\w*|playbook\w*|"
+    r"protocolo\w*|protocol\w*|gu[ií]a\w*|guideline\w*)\b",
+    re.IGNORECASE,
+)
 
 
 def _utc_now_iso() -> str:
@@ -64,6 +81,8 @@ def receive_question(state: AgentState) -> AgentState:
     state["actor_id"] = state.get("actor_id")
     state["tool_action"] = state.get("tool_action")
     state["tool_arguments"] = state.get("tool_arguments") or {}
+    state["source_route"] = state.get("source_route") or ""
+    state["incident_id"] = state.get("incident_id")
     state["context"] = state.get("context") or []
     state["memory_context"] = state.get("memory_context") or []
     state["pending_proposal"] = state.get("pending_proposal")
@@ -194,14 +213,15 @@ def _generate_brief_trivia(question: str, session_id: str) -> str:
 
 def retrieve_context(state: AgentState) -> AgentState:
     question = (state.get("question") or "").strip()
-    context = retrieve(question, k=5, min_score=0.35)
-    state["context"] = context
+    rag_context = retrieve(question, k=5, min_score=0.35)
+    incident_context = state.get("context") or []
+    state["context"] = rag_context + incident_context
     _append_trace(
         state,
         "retrieve_context",
         question=question,
-        context_count=len(context),
-        document_ids=[item.get("source_document") for item in context if item.get("source_document")],
+        context_count=len(rag_context),
+        document_ids=[item.get("source_document") for item in rag_context if item.get("source_document")],
     )
     return state
 
@@ -559,44 +579,126 @@ async def run_mcp_tool(state: AgentState) -> AgentState:
     return state
 
 
-def route_after_question(state: AgentState) -> Literal["respond_without_context", "retrieve_context", "run_mcp_tool"]:
+async def run_incident_lookup(state: AgentState) -> AgentState:
+    incident_id = state.get("incident_id") or ""
+    error_code = None
+    try:
+        if not state.get("actor_id"):
+            raise PermissionError("AUTHENTICATION_REQUIRED")
+        result = await asyncio.wait_for(
+            asyncio.to_thread(lookup_incident_record, IncidentLookupInput(incident_id=incident_id)),
+            timeout=INCIDENT_LOOKUP_TIMEOUT_SECONDS,
+        )
+        if not result.found or result.incident is None:
+            error_code = "INCIDENT_NOT_FOUND"
+        else:
+            state["context"] = [{
+                "source_document": "Live incident manager lookup",
+                "text": result.incident.model_dump_json(),
+            }]
+    except asyncio.TimeoutError:
+        error_code = "INCIDENT_LOOKUP_TIMEOUT"
+    except PermissionError as error:
+        error_code = str(error)
+    except Exception:
+        error_code = "INCIDENT_SERVICE_UNAVAILABLE"
+
+    state["error"] = error_code
+    _append_trace(
+        state,
+        "incident_lookup",
+        tool="lookup_incident",
+        incident_id=incident_id,
+        result="error" if error_code else "success",
+        error_code=error_code,
+        timeout_seconds=INCIDENT_LOOKUP_TIMEOUT_SECONDS,
+    )
+    return state
+
+
+def respond_incident_lookup_failure(state: AgentState) -> AgentState:
+    error_code = state.get("error")
+    question = state.get("question", "")
+    english = manager_redirect_for(question).startswith("I'm here")
+    if error_code == "INCIDENT_NOT_FOUND":
+        answer = "I couldn't find that incident in the incident manager." if english else "No encontré ese ticket en el gestor de incidencias."
+    elif error_code == "AUTHENTICATION_REQUIRED":
+        answer = "Please sign in so I can check that incident." if english else "Inicia sesión para que pueda consultar ese ticket."
+    else:
+        answer = "I couldn't confirm that incident's status right now." if english else "No pude confirmar el estado de ese ticket ahora mismo."
+    state["answer"] = answer
+    _append_trace(state, "incident_lookup_fallback", error_code=error_code, answer=answer)
+    return state
+
+
+def route_after_incident_lookup(state: AgentState) -> Literal["respond_incident_lookup_failure", "retrieve_context", "generate_answer"]:
+    if state.get("error"):
+        return "respond_incident_lookup_failure"
+    if state.get("source_route") == "incident_and_rag":
+        return "retrieve_context"
+    return "generate_answer"
+
+
+def select_sources(state: AgentState) -> AgentState:
+    if state.get("tool_action"):
+        state["source_route"] = "mcp_tool"
+        _append_trace(state, "source_routing", sources=["mcp_tool"], automatic=False)
+        return state
+    question = (state.get("question") or "").strip()
+    match = _INCIDENT_REFERENCE.search(question)
+    if match:
+        state["incident_id"] = match.group(1)
+        state["source_route"] = "incident_and_rag" if _PROCEDURE_REQUEST.search(question) else "incident"
+        sources = ["incident_tool"]
+        if state["source_route"] == "incident_and_rag":
+            sources.append("rag")
+        _append_trace(state, "source_routing", sources=sources, automatic=True, incident_id=state["incident_id"])
+    else:
+        state["source_route"] = "rag"
+        _append_trace(state, "source_routing", sources=["rag"], automatic=True)
+    return state
+
+
+def route_after_source_selection(state: AgentState) -> Literal["respond_without_context", "retrieve_context", "run_mcp_tool", "run_incident_lookup"]:
     if state.get("tool_action"):
         return "run_mcp_tool"
     if not (state.get("question") or "").strip():
         return "respond_without_context"
+    if state.get("source_route") in {"incident", "incident_and_rag"}:
+        return "run_incident_lookup"
     return "retrieve_context"
 
 
-def route_after_input_guard(state: AgentState) -> Literal["__end__", "respond_briefly_and_redirect", "load_agent_memory", "respond_without_context", "retrieve_context", "run_mcp_tool"]:
+def route_after_input_guard(state: AgentState) -> Literal["__end__", "respond_briefly_and_redirect", "load_agent_memory", "select_sources"]:
     if state.get("guardrail_action") == "reject":
         return END
     if state.get("guardrail_action") == "redirect":
         return "respond_briefly_and_redirect"
     if state.get("actor_id"):
         return "load_agent_memory"
-    return route_after_question(state)
+    return "select_sources"
 
 
-def route_after_receive(state: AgentState) -> Literal["load_agent_memory", "respond_without_context", "retrieve_context", "run_mcp_tool"]:
+def route_after_receive(state: AgentState) -> Literal["load_agent_memory", "select_sources"]:
     if state.get("actor_id"):
         return "load_agent_memory"
-    return route_after_question(state)
+    return "select_sources"
 
 
-def route_after_memory_load(state: AgentState) -> Literal["resolve_memory_proposal", "respond_without_context", "retrieve_context", "run_mcp_tool"]:
+def route_after_memory_load(state: AgentState) -> Literal["resolve_memory_proposal", "select_sources"]:
     if state.get("pending_proposal"):
         return "resolve_memory_proposal"
-    return route_after_question(state)
+    return "select_sources"
 
 
-def route_after_memory_resolution(state: AgentState) -> Literal["__end__", "respond_briefly_and_redirect", "respond_without_context", "retrieve_context", "run_mcp_tool"]:
+def route_after_memory_resolution(state: AgentState) -> Literal["__end__", "respond_briefly_and_redirect", "select_sources"]:
     if state.get("finish_after_memory"):
         return END
     if state.get("guardrail_action") == "reject":
         return END
     if state.get("guardrail_action") == "redirect":
         return "respond_briefly_and_redirect"
-    return route_after_question(state)
+    return "select_sources"
 
 
 def route_after_retrieve(state: AgentState) -> Literal["respond_without_context", "generate_answer"]:
@@ -612,6 +714,9 @@ def build_agent_graph():
     builder.add_node("respond_without_context", respond_without_context)
     builder.add_node("generate_answer", generate_response)
     builder.add_node("run_mcp_tool", run_mcp_tool)
+    builder.add_node("run_incident_lookup", run_incident_lookup)
+    builder.add_node("respond_incident_lookup_failure", respond_incident_lookup_failure)
+    builder.add_node("select_sources", select_sources)
     builder.add_node("load_agent_memory", load_agent_memory)
     builder.add_node("resolve_memory_proposal", resolve_memory_proposal)
     builder.add_node("input_guardrail", guard_user_input)
@@ -626,15 +731,21 @@ def build_agent_graph():
             "__end__": END,
             "respond_briefly_and_redirect": "respond_briefly_and_redirect",
             "load_agent_memory": "load_agent_memory",
-            "run_mcp_tool": "run_mcp_tool",
+            "select_sources": "select_sources",
+        },
+    )
+    builder.add_conditional_edges(
+        "select_sources",
+        route_after_source_selection,
+        {
             "respond_without_context": "respond_without_context",
             "retrieve_context": "retrieve_context",
+            "run_mcp_tool": "run_mcp_tool",
+            "run_incident_lookup": "run_incident_lookup",
         },
     )
     dispatch_edges = {
-        "run_mcp_tool": "run_mcp_tool",
-        "respond_without_context": "respond_without_context",
-        "retrieve_context": "retrieve_context",
+        "select_sources": "select_sources",
     }
     builder.add_conditional_edges(
         "load_agent_memory",
@@ -657,6 +768,16 @@ def build_agent_graph():
     builder.add_edge("respond_without_context", END)
     builder.add_edge("generate_answer", END)
     builder.add_edge("run_mcp_tool", END)
+    builder.add_conditional_edges(
+        "run_incident_lookup",
+        route_after_incident_lookup,
+        {
+            "respond_incident_lookup_failure": "respond_incident_lookup_failure",
+            "retrieve_context": "retrieve_context",
+            "generate_answer": "generate_answer",
+        },
+    )
+    builder.add_edge("respond_incident_lookup_failure", END)
     builder.add_edge("respond_briefly_and_redirect", END)
 
     return builder.compile(checkpointer=MemorySaver())
@@ -679,6 +800,8 @@ async def query_agent(
         "actor_id": actor_id,
         "tool_action": tool_action,
         "tool_arguments": tool_arguments or {},
+        "source_route": "",
+        "incident_id": None,
         "context": [],
         "answer": "",
         "trace": [],

@@ -75,6 +75,7 @@ def test_approval_cycle_is_proposed_then_used_on_future_turn(tmp_path, monkeypat
         "load_agent_memory",
         "input_guardrail",
         "resolve_memory_proposal",
+        "source_routing",
         "retrieve_context",
         "generate_answer",
     ]
