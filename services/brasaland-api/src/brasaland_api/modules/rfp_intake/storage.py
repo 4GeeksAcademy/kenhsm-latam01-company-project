@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -65,6 +66,18 @@ def update_ticket(ticket_id: str, values: dict[str, Any]) -> None:
     )
 
 
+def claim_draft_generation(ticket_id: str) -> bool:
+    """Atomically claim only tickets that finished Part 1."""
+    rows = _request(
+        "PATCH",
+        "rfp_tickets",
+        params={"ticket_id": f"eq.{ticket_id}", "status": "eq.analisis_completo"},
+        payload={"status": "generando_borrador", "updated_at": datetime.now(timezone.utc).isoformat()},
+        prefer="return=representation",
+    )
+    return bool(rows)
+
+
 def persist_analysis(
     ticket_id: str,
     metadata: dict[str, Any],
@@ -96,6 +109,26 @@ def persist_analysis(
             payload=section_rows,
             prefer="resolution=merge-duplicates,return=minimal",
         )
+
+
+def persist_draft_sections(ticket_id: str, sections: list[dict[str, Any]]) -> None:
+    for section in sections:
+        rows = _request(
+            "PATCH",
+            "department_sections",
+            params={
+                "ticket_id": f"eq.{ticket_id}",
+                "department_id": f"eq.{section['department_id']}",
+            },
+            payload={
+                "draft_content": section.get("draft_content"),
+                "evaluation_results": section.get("evaluation_results"),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            prefer="return=representation",
+        )
+        if not rows:
+            raise RFPStorageError("Part 1 department section is missing during draft persistence")
 
 
 def get_ticket(ticket_id: str) -> dict[str, Any] | None:

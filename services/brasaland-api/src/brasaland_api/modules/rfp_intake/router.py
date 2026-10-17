@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.rfp_intake import storage
 from brasaland_api.modules.rfp_intake.storage import RFPStorageError
+from brasaland_api.modules.rfp_intake.drafting import run_rfp_draft_generation
 from data.pipelines.rfp_intake.runner import run_rfp_intake
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,11 @@ MAX_PDF_BYTES = 25 * 1024 * 1024
 
 
 class RFPSubmissionAccepted(BaseModel):
+    ticket_id: str
+    status: str
+
+
+class RFPDraftGenerationAccepted(BaseModel):
     ticket_id: str
     status: str
 
@@ -56,6 +63,50 @@ def process_rfp_ticket(ticket_id: str, pdf_path: str) -> None:
             })
         except RFPStorageError:
             logger.exception("Could not record RFP processing failure ticket_id=%s", ticket_id)
+
+
+def process_rfp_draft_ticket(ticket_id: str) -> None:
+    try:
+        ticket = storage.get_ticket(ticket_id)
+        if ticket is None or ticket.get("status") != "generando_borrador":
+            return
+
+        def update_status(next_status: str) -> None:
+            storage.update_ticket(ticket_id, {
+                "status": next_status,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+
+        def persist_progress(sections: list[dict], handoff_payload: dict) -> None:
+            storage.persist_draft_sections(ticket_id, sections)
+            storage.update_ticket(ticket_id, {
+                "handoff_payload": handoff_payload,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+
+        result = asyncio.run(run_rfp_draft_generation(
+            ticket_id=ticket_id,
+            metadata=ticket.get("metadata") or {},
+            handoff_payload=ticket.get("handoff_payload") or {},
+            department_sections=ticket.get("department_sections") or [],
+            status_callback=update_status,
+            progress_callback=persist_progress,
+        ))
+        storage.update_ticket(ticket_id, {
+            "status": result.get("ticket_status", "en_evaluación"),
+            "handoff_payload": result.get("handoff_payload"),
+            "processing_error": None,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        logger.exception("RFP draft generation failed ticket_id=%s", ticket_id)
+        try:
+            storage.update_ticket(ticket_id, {
+                "processing_error": "No se pudo completar la generación/evaluación. El borrador requiere revisión o reintento.",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except RFPStorageError:
+            logger.exception("Could not record RFP draft failure ticket_id=%s", ticket_id)
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=RFPSubmissionAccepted)
@@ -115,3 +166,28 @@ def read_rfp_ticket(ticket_id: str, _current_user=Depends(get_current_user)) -> 
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
     return ticket
+
+
+@router.post("/{ticket_id}/generate-draft", status_code=status.HTTP_202_ACCEPTED, response_model=RFPDraftGenerationAccepted)
+def generate_rfp_draft(
+    ticket_id: str,
+    background_tasks: BackgroundTasks,
+    _current_user=Depends(get_current_user),
+) -> RFPDraftGenerationAccepted:
+    try:
+        ticket = storage.get_ticket(ticket_id)
+        if ticket is None:
+            raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
+        if ticket.get("status") != "analisis_completo":
+            raise HTTPException(status_code=409, detail="Solo se generan borradores desde un análisis completo.")
+        handoff = ticket.get("handoff_payload") or {}
+        sections = ticket.get("department_sections") or []
+        if handoff.get("ticket_id") != ticket_id or not sections:
+            raise HTTPException(status_code=409, detail="El handoff de Parte 1 está incompleto.")
+        if not storage.claim_draft_generation(ticket_id):
+            raise HTTPException(status_code=409, detail="El ticket ya no está disponible para generar un borrador.")
+    except RFPStorageError as error:
+        raise HTTPException(status_code=503, detail="No se pudo iniciar la generación del borrador.") from error
+
+    background_tasks.add_task(process_rfp_draft_ticket, ticket_id)
+    return RFPDraftGenerationAccepted(ticket_id=ticket_id, status="generando_borrador")
