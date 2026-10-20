@@ -6,13 +6,16 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from brasaland_api.core.deps import get_current_user
+from brasaland_api.modules.profiles import services as profile_services
 from brasaland_api.modules.rfp_intake import storage
+from brasaland_api.modules.rfp_intake.approvals import initialize_approval_branches, respond_to_approval
 from brasaland_api.modules.rfp_intake.storage import RFPStorageError
 from brasaland_api.modules.rfp_intake.drafting import run_rfp_draft_generation
 from data.pipelines.rfp_intake.runner import run_rfp_intake
@@ -34,10 +37,55 @@ class RFPDraftGenerationAccepted(BaseModel):
     status: str
 
 
+class RFPApprovalRequest(BaseModel):
+    action: Literal["approve", "reject", "request_changes"]
+    comment: str | None = Field(default=None, max_length=2000)
+    price_per_event_usd: float | None = Field(default=None, ge=0)
+    cost_per_event_usd: float | None = Field(default=None, ge=0)
+    setup_lead_time_business_days: int | None = Field(default=None, ge=0)
+
+
+class RFPApprovalResponse(BaseModel):
+    ticket_id: str
+    status: str
+
+
+class RFPFinalDocument(BaseModel):
+    ticket_id: str
+    document_markdown: str
+    sections: list[dict[str, Any]]
+    total_estimated_value: float | None = None
+    currency: Literal["USD", "COP"]
+    generated_at: datetime
+
+
+def _execution_event(agent: str, input_value, output_value) -> dict:
+    return {
+        "event_id": str(uuid4()),
+        "agent": agent,
+        "input": input_value,
+        "output": output_value,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def process_rfp_ticket(ticket_id: str, pdf_path: str) -> None:
     try:
         result = run_rfp_intake(ticket_id, pdf_path)
         classification = result.get("classification", {})
+        trace = [_execution_event("rfp_classifier", {"pdf_path": pdf_path}, classification)]
+        if classification.get("is_valid"):
+            trace.append(_execution_event("rfp_metadata_extractor", {"classification": classification}, result.get("metadata", {})))
+            trace.extend(
+                _execution_event(
+                    f"department_worker:{section['department_id']}",
+                    {"metadata": result.get("metadata", {}), "key_aspects": section.get("key_aspects", {})},
+                    section,
+                )
+                for section in result.get("department_results", [])
+            )
+            trace.append(_execution_event("part_one_synthesizer", {"departments": result.get("metadata", {}).get("departments_needed", [])}, result.get("handoff_payload", {})))
+        storage.persist_execution_events(ticket_id, trace)
         if not classification.get("is_valid"):
             storage.update_ticket(ticket_id, {
                 "status": "descartado",
@@ -83,6 +131,22 @@ def process_rfp_draft_ticket(ticket_id: str) -> None:
                 "handoff_payload": handoff_payload,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             })
+            events = []
+            for section in sections:
+                department_id = section["department_id"]
+                if section.get("draft_content"):
+                    events.append(_execution_event(
+                        f"department_generator:{department_id}",
+                        {"key_aspects": section.get("key_aspects") or {}, "iteration_count": section.get("iteration_count")},
+                        {"draft_content": section["draft_content"]},
+                    ))
+                if section.get("evaluation_results"):
+                    events.append(_execution_event(
+                        f"parallel_evaluators:{department_id}",
+                        {"draft_content": section.get("draft_content")},
+                        section["evaluation_results"],
+                    ))
+            storage.persist_execution_events(ticket_id, events)
 
         result = asyncio.run(run_rfp_draft_generation(
             ticket_id=ticket_id,
@@ -92,12 +156,22 @@ def process_rfp_draft_ticket(ticket_id: str) -> None:
             status_callback=update_status,
             progress_callback=persist_progress,
         ))
+        storage.persist_execution_events(ticket_id, [
+            _execution_event(
+                "part_two_handoff",
+                {"ticket_id": ticket_id},
+                {"ticket_status": result.get("ticket_status"), "draft_generation": (result.get("handoff_payload") or {}).get("draft_generation", {})},
+            )
+        ])
         storage.update_ticket(ticket_id, {
             "status": result.get("ticket_status", "en_evaluación"),
             "handoff_payload": result.get("handoff_payload"),
             "processing_error": None,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         })
+        ticket = storage.get_ticket(ticket_id)
+        if ticket is not None:
+            initialize_approval_branches(ticket)
     except Exception:
         logger.exception("RFP draft generation failed ticket_id=%s", ticket_id)
         try:
@@ -157,8 +231,8 @@ def read_rfp_tickets(_current_user=Depends(get_current_user)) -> list[dict]:
         raise HTTPException(status_code=503, detail="No se pudieron consultar los tickets.") from error
 
 
-@router.get("/{ticket_id}")
-def read_rfp_ticket(ticket_id: str, _current_user=Depends(get_current_user)) -> dict:
+@router.get("/{ticket_id}", response_model=dict[str, Any])
+def read_rfp_ticket(ticket_id: str, _current_user=Depends(get_current_user)) -> dict[str, Any]:
     try:
         ticket = storage.get_ticket(ticket_id)
     except RFPStorageError as error:
@@ -168,23 +242,65 @@ def read_rfp_ticket(ticket_id: str, _current_user=Depends(get_current_user)) -> 
     return ticket
 
 
+@router.get("/{ticket_id}/final-document", response_model=RFPFinalDocument)
+def read_rfp_final_document(ticket_id: str, _current_user=Depends(get_current_user)) -> RFPFinalDocument:
+    try:
+        document = storage.get_final_document(ticket_id)
+    except RFPStorageError as error:
+        raise HTTPException(status_code=503, detail="No se pudo consultar el documento final.") from error
+    if document is None:
+        raise HTTPException(status_code=404, detail="El documento final aún no está disponible.")
+    return RFPFinalDocument.model_validate(document)
+
+
+@router.post("/{ticket_id}/approvals/{approval_key}", response_model=RFPApprovalResponse)
+def submit_rfp_approval(
+    ticket_id: str,
+    approval_key: str,
+    payload: RFPApprovalRequest,
+    current_user=Depends(get_current_user),
+) -> RFPApprovalResponse:
+    profile = profile_services.get_profile_by_user_id(str(current_user.id))
+    approver_name = profile.name if profile and profile.name else ""
+    try:
+        next_status = respond_to_approval(
+            ticket_id,
+            approval_key,
+            approver_name,
+            payload.model_dump(exclude_none=True),
+        )
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except RFPStorageError as error:
+        raise HTTPException(status_code=503, detail="No se pudo guardar la aprobación RFP.") from error
+    return RFPApprovalResponse(ticket_id=ticket_id, status=next_status)
+
+
 @router.post("/{ticket_id}/generate-draft", status_code=status.HTTP_202_ACCEPTED, response_model=RFPDraftGenerationAccepted)
 def generate_rfp_draft(
     ticket_id: str,
     background_tasks: BackgroundTasks,
-    _current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ) -> RFPDraftGenerationAccepted:
     try:
         ticket = storage.get_ticket(ticket_id)
         if ticket is None:
             raise HTTPException(status_code=404, detail="Ticket RFP no encontrado.")
-        if ticket.get("status") != "analisis_completo":
-            raise HTTPException(status_code=409, detail="Solo se generan borradores desde un análisis completo.")
+        if ticket.get("status") not in {"analisis_completo", "needs_human_review"}:
+            raise HTTPException(status_code=409, detail="Solo se inicia generación desde análisis completo o revisión humana requerida.")
+        if ticket.get("status") == "needs_human_review":
+            profile = profile_services.get_profile_by_user_id(str(current_user.id))
+            if not profile or (profile.name or "").strip().casefold() != "camila ospina":
+                raise HTTPException(status_code=403, detail="Solo Camila Ospina puede reabrir una generación rechazada.")
         handoff = ticket.get("handoff_payload") or {}
         sections = ticket.get("department_sections") or []
         if handoff.get("ticket_id") != ticket_id or not sections:
             raise HTTPException(status_code=409, detail="El handoff de Parte 1 está incompleto.")
-        if not storage.claim_draft_generation(ticket_id):
+        if not storage.claim_draft_generation(ticket_id, expected_status=ticket["status"]):
             raise HTTPException(status_code=409, detail="El ticket ya no está disponible para generar un borrador.")
     except RFPStorageError as error:
         raise HTTPException(status_code=503, detail="No se pudo iniciar la generación del borrador.") from error

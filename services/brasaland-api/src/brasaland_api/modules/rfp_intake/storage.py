@@ -66,12 +66,14 @@ def update_ticket(ticket_id: str, values: dict[str, Any]) -> None:
     )
 
 
-def claim_draft_generation(ticket_id: str) -> bool:
-    """Atomically claim only tickets that finished Part 1."""
+def claim_draft_generation(ticket_id: str, expected_status: str = "analisis_completo") -> bool:
+    """Atomically claim a completed Part 1 ticket or an explicitly reopened review."""
+    if expected_status not in {"analisis_completo", "needs_human_review"}:
+        return False
     rows = _request(
         "PATCH",
         "rfp_tickets",
-        params={"ticket_id": f"eq.{ticket_id}", "status": "eq.analisis_completo"},
+        params={"ticket_id": f"eq.{ticket_id}", "status": f"eq.{expected_status}"},
         payload={"status": "generando_borrador", "updated_at": datetime.now(timezone.utc).isoformat()},
         prefer="return=representation",
     )
@@ -131,6 +133,78 @@ def persist_draft_sections(ticket_id: str, sections: list[dict[str, Any]]) -> No
             raise RFPStorageError("Part 1 department section is missing during draft persistence")
 
 
+def update_draft_section(ticket_id: str, section: dict[str, Any]) -> None:
+    rows = _request(
+        "PATCH",
+        "department_sections",
+        params={
+            "ticket_id": f"eq.{ticket_id}",
+            "department_id": f"eq.{section['department_id']}",
+        },
+        payload={
+            "draft_content": section.get("draft_content"),
+            "evaluation_results": section.get("evaluation_results"),
+            "approval_status": section.get("approval_status", "pendiente"),
+            "approver": section.get("approver"),
+            "approved_at": section.get("approved_at"),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        prefer="return=representation",
+    )
+    if not rows:
+        raise RFPStorageError("Department section is missing during approval update")
+
+
+def save_approval(ticket_id: str, approval_key: str, values: dict[str, Any]) -> None:
+    _request(
+        "POST",
+        "rfp_human_approvals",
+        params={"on_conflict": "ticket_id,approval_key"},
+        payload={"ticket_id": ticket_id, "approval_key": approval_key, **values},
+        prefer="resolution=merge-duplicates,return=minimal",
+    )
+
+
+def list_approvals(ticket_id: str) -> list[dict[str, Any]]:
+    return _request(
+        "GET",
+        "rfp_human_approvals",
+        params={"ticket_id": f"eq.{ticket_id}", "select": "*", "order": "approval_key.asc"},
+    )
+
+
+def persist_execution_events(ticket_id: str, events: list[dict[str, Any]]) -> None:
+    if not events:
+        return
+    rows = [{"ticket_id": ticket_id, **event} for event in events]
+    _request(
+        "POST",
+        "rfp_execution_events",
+        params={"on_conflict": "event_id"},
+        payload=rows,
+        prefer="resolution=ignore-duplicates,return=minimal",
+    )
+
+
+def persist_final_document(document: dict[str, Any]) -> None:
+    _request(
+        "POST",
+        "rfp_final_documents",
+        params={"on_conflict": "ticket_id"},
+        payload=document,
+        prefer="resolution=merge-duplicates,return=minimal",
+    )
+
+
+def get_final_document(ticket_id: str) -> dict[str, Any] | None:
+    rows = _request(
+        "GET",
+        "rfp_final_documents",
+        params={"ticket_id": f"eq.{ticket_id}", "select": "*", "limit": "1"},
+    )
+    return rows[0] if rows else None
+
+
 def get_ticket(ticket_id: str) -> dict[str, Any] | None:
     rows = _request(
         "GET",
@@ -150,8 +224,17 @@ def get_ticket(ticket_id: str) -> dict[str, Any] | None:
         "department_sections",
         params={"ticket_id": f"eq.{ticket_id}", "select": "*", "order": "department_id.asc"},
     )
+    approvals = list_approvals(ticket_id)
+    events = _request(
+        "GET",
+        "rfp_execution_events",
+        params={"ticket_id": f"eq.{ticket_id}", "select": "event_id,agent,input,output,timestamp", "order": "timestamp.asc"},
+    )
     ticket["metadata"] = metadata[0] if metadata else None
     ticket["department_sections"] = sections
+    ticket["approvals"] = approvals
+    ticket["execution_trace"] = events
+    ticket["final_document"] = get_final_document(ticket_id)
     return ticket
 
 

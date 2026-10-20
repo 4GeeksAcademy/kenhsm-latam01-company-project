@@ -79,6 +79,7 @@ The manager-support graph automatically routes incident references (for example,
 | `AGENT_MEMORY_DB_PATH` | SQLite file for per-user approved agent notes and proposal audit; defaults to `~/.local/state/brasaland/agent_memory.sqlite3`. Set to a durable volume in deployment. |
 | `SUPABASE_URL` | Supabase project URL used by the telemetry batch writer. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret server-side key used only by FastAPI; never expose it to the browser or commit it. |
+| `RFP_CHECKPOINT_PATH` | Durable SQLite checkpoint file for independently resumable RFP approval branches (default `data/state/rfp_approval_checkpoints.sqlite3`). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
 
 ## Telemetry storage
@@ -100,16 +101,18 @@ Run the API unit tests from this directory with `PYTHONPATH=src python -m unitte
 
 ## RFP Ticket Intake
 
-Apply `migrations/003_create_rfp_intake.sql` to the Supabase project before enabling the RFP endpoints. The migration creates `public.rfp_tickets`, `public.rfp_metadata`, and `public.department_sections`, with service-role access. The API uses the existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` settings; configure them only in the backend environment.
+Apply `migrations/003_create_rfp_intake.sql` and `migrations/004_create_rfp_approvals.sql` to the Supabase project before enabling the complete RFP workflow. They create ticket/section persistence, department and CEO approvals, execution events, and final documents. The API uses the existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` settings; configure them only in the backend environment.
 
 `POST /rfp-intake` accepts one PDF (maximum 25 MB), writes the artifact to repository `data/raw/rfp-intake/`, creates an `analizando` ticket, and returns `202` with `ticket_id`. FastAPI `BackgroundTasks` then invokes the dedicated LangGraph under `data/pipelines/rfp_intake/`. `GET /rfp-intake` lists recent tickets and `GET /rfp-intake/{ticket_id}` returns status, metadata, department sections, processing error, and synthesizer handoff. All routes require JWT authentication.
 
 The PDF is converted with MarkItDown before classification. Readability uses `py-readability-metrics` when tokenizer resources are available and a deterministic local estimate otherwise. A failed background run records `processing_error` and does not falsely complete the ticket. The in-process task is not a durable queue, so production deployments requiring restart recovery should replace dispatch with a durable worker while retaining this API and graph contract.
 
-`POST /rfp-intake/{ticket_id}/generate-draft` starts Part 2 only for an authenticated ticket in `analisis_completo` with its persisted synthesizer handoff and department sections. It atomically claims the ticket, runs the department drafting/evaluation graph under `data/pipelines/rfp_intake/`, and persists each `draft_content` and structured `evaluation_results` in the existing `department_sections` table. GET on the ticket exposes incremental status and the Part 3 handoff. Evaluation exhaustion ends in `needs_human_review`; when every section passes, the handoff is marked `ready_for_part_3` while the ticket remains at the last Part 2 state `en_evaluación` because no successful terminal state is defined in this part. Annual USD budgets above 50,000 carry the `ceo-threshold` approval gate forward without performing Part 3 approval here.
+`POST /rfp-intake/{ticket_id}/generate-draft` runs Part 2, then starts an independent checkpointed approval branch for each active department and for Mariana Restrepo when annual value exceeds USD 50,000. `POST /rfp-intake/{ticket_id}/approvals/{approval_key}` accepts `approve`, `reject`, or `request_changes`; the API resumes only that branch and verifies the authenticated TinyDB profile name against the named approver. A change request regenerates only the selected department and is bounded to three cycles; a rejection returns the ticket to `needs_human_review`, from which Marketing can explicitly start a new Part 2 execution with the same endpoint.
+
+Set `RFP_CHECKPOINT_PATH` to a durable filesystem path for `SqliteSaver` (default `data/state/rfp_approval_checkpoints.sqlite3`). The SQLite file must live on a persistent volume in deployment. Branch `thread_id` values include ticket, approval key, and revision. Operations/Procurement can enter structured per-event terms and every department can enter setup lead time; fixed arbitration checks those values and structured compliance violations without inferring figures from free text. `GET /rfp-intake/{ticket_id}` returns approval state, arbitration conflicts, ordered execution events, and the final document when available. `GET /rfp-intake/{ticket_id}/final-document` returns 404 until all required sign-offs are approved. The deterministic synthesizer stores only approved customer-facing sections, not internal evaluation/cost fields.
 
 Focused RFP API and pipeline tests:
 
 ```bash
-PYTHONPATH=src:../.. uv run pytest --import-mode=importlib tests/test_rfp_intake.py ../../tests/pipelines/test_rfp_intake.py -q
+PYTHONPATH=src:../.. uv run pytest --import-mode=importlib tests/test_rfp_intake.py ../../tests/pipelines/test_rfp_intake.py ../../tests/pipelines/test_rfp_drafting.py ../../tests/pipelines/test_rfp_approval.py -q
 ```

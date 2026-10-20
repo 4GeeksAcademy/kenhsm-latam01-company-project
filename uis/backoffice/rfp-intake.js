@@ -11,9 +11,15 @@ const ticketDetail = document.querySelector("#ticket-detail");
 const logoutButton = document.querySelector("#logout-button");
 const uploadForm = document.querySelector("#upload-form");
 const uploadButton = document.querySelector("#upload-button");
-const statusLabels = { analizando: "Analizando", descartado: "Descartado", analisis_completo: "Análisis completo" };
+const statusLabels = {
+  analizando: "Analizando", descartado: "Descartado", analisis_completo: "Análisis completo",
+  generando_borrador: "Generando borradores", "en_evaluación": "En evaluación",
+  needs_human_review: "Revisión requerida", "esperando_aprobación": "Esperando aprobación", terminado: "Terminado",
+};
+const approvers = { marketing: "Camila Ospina", operaciones: "Felipe Guerrero", procurement: "Lucía Fernández", training: "Jake Morrison", ceo: "Mariana Restrepo" };
 let selectedTicketId = null;
 let refreshTimer = null;
+let currentUserName = "";
 
 loginForm.addEventListener("submit", login);
 uploadForm.addEventListener("submit", submitRfp);
@@ -26,9 +32,14 @@ ticketList.addEventListener("click", (event) => {
   loadTicket(selectedTicketId);
   markSelectedTicket();
 });
+ticketDetail.addEventListener("click", (event) => {
+  if (event.target.closest("[data-generate-draft]")) generateDraft();
+});
+ticketDetail.addEventListener("submit", submitApproval);
 
 if (localStorage.getItem(tokenKey)) {
   showWorkspace();
+  await loadCurrentUser();
   await loadTickets();
   refreshTimer = setInterval(loadTickets, 5000);
 }
@@ -47,6 +58,7 @@ async function login(event) {
     localStorage.setItem(tokenKey, token);
     loginForm.reset();
     showWorkspace();
+    await loadCurrentUser();
     await loadTickets();
     refreshTimer = setInterval(loadTickets, 5000);
   } catch (error) {
@@ -92,7 +104,7 @@ async function loadTickets() {
     if (!selectedTicketId && tickets.length) selectedTicketId = tickets[0].ticket_id;
     if (selectedTicketId) await loadTicket(selectedTicketId);
     else ticketDetail.innerHTML = '<p class="detail-empty">Aún no hay tickets. Sube una RFP para iniciar.</p>';
-    if (tickets.some((ticket) => ticket.status === "analizando")) {
+    if (tickets.some((ticket) => ["analizando", "generando_borrador", "en_evaluación", "esperando_aprobación"].includes(ticket.status))) {
       setStatus("Actualización automática cada 5 segundos.");
     }
   } catch (error) {
@@ -133,11 +145,25 @@ function renderTicket(ticket) {
   const client = metadata.client_name || "Cliente por identificar";
   const status = statusLabels[ticket.status] || ticket.status;
   const sections = ticket.department_sections || [];
+  const approvalsByKey = Object.fromEntries((ticket.approvals || []).map((approval) => [approval.approval_key, approval]));
+  const conflicts = ticket.handoff_payload?.approval_workflow?.conflicts || [];
   const scope = Array.isArray(metadata.scope) ? metadata.scope.join(" ") : metadata.scope;
   const metrics = metadata.readability_metrics || {};
   const metricSummary = metrics.word_count == null ? "No disponible" : `${formatNumber(metrics.word_count)} palabras · ~${formatNumber(metrics.estimated_input_tokens)} tokens`;
   const questions = metadata.open_questions || [];
-  const sectionsMarkup = sections.map((section) => renderDepartment(section)).join("") || '<p class="detail-empty">Los aspectos por departamento estarán disponibles al completar el análisis.</p>';
+  const sectionsMarkup = sections.map((section) => renderDepartment(section, approvalsByKey[section.department_id], conflicts)).join("") || '<p class="detail-empty">Los aspectos por departamento estarán disponibles al completar el análisis.</p>';
+  const ceoMarkup = approvalsByKey.ceo ? renderApprovalCard("ceo", approvalsByKey.ceo, "Aprobación ejecutiva", conflicts.filter((item) => item.trigger_id === "ceo-threshold")) : "";
+  const arbitrationMarkup = conflicts.length ? `<section class="arbitration-summary"><h4>Arbitraje requerido</h4><ul>${conflicts.map((item) => `<li><strong>${escapeHtml(item.trigger_id)}</strong> · Árbitro: ${escapeHtml(item.owner)} · ${escapeHtml(item.resolution)}</li>`).join("")}</ul></section>` : "";
+  const finalDocument = ticket.final_document ? `<section class="final-document"><h4>Documento final</h4><p>Generado ${escapeHtml(formatDate(ticket.final_document.generated_at))}</p><pre>${escapeHtml(ticket.final_document.document_markdown)}</pre><a href="${apiBase}/rfp-intake/${encodeURIComponent(ticket.ticket_id)}/final-document" target="_blank" rel="noreferrer">Abrir documento final</a></section>` : "";
+  const traceMarkup = (ticket.execution_trace || []).length ? `<details class="execution-trace"><summary>Trazabilidad (${ticket.execution_trace.length})</summary><ol>${ticket.execution_trace.map((event) => `<li><strong>${escapeHtml(event.agent)}</strong><time>${escapeHtml(formatDate(event.timestamp))}</time><pre>Entrada: ${escapeHtml(JSON.stringify(event.input))}\nSalida: ${escapeHtml(JSON.stringify(event.output))}</pre></li>`).join("")}</ol></details>` : "";
+  const draftAction = ["analisis_completo", "needs_human_review"].includes(ticket.status)
+    ? `<button class="secondary-button rfp-draft-action" type="button" data-generate-draft>${ticket.status === "needs_human_review" ? "Reabrir generación" : "Generar propuesta"}</button>`
+    : "";
+  const draftStatus = ticket.handoff_payload?.draft_generation?.status;
+  const handoffNote = ticket.handoff_payload ? draftStatus
+    ? `<p class="handoff-note">Estado de generación: ${escapeHtml(draftStatus)}.</p>`
+    : '<p class="handoff-note">Análisis de Parte 1 listo; el handoff conserva los metadatos y workstreams para generar la propuesta.</p>'
+    : "";
   ticketDetail.innerHTML = `
     <div class="ticket-title-row"><div><p class="kicker">Expediente ${escapeHtml(ticket.rfp_id || "")}</p><h3 id="detail-title">${escapeHtml(client)}</h3></div><span class="status-badge" data-status="${escapeHtml(ticket.status)}">${escapeHtml(status)}</span></div>
     <p class="detail-meta">Ticket ${escapeHtml(ticket.ticket_id)} · Recibido ${escapeHtml(formatDate(ticket.created_at))}</p>
@@ -148,16 +174,99 @@ function renderTicket(ticket) {
       ${metadataItem("Presupuesto", metadata.budget_range)}${metadataItem("Legibilidad", metricSummary)}
     </dl>
     ${questions.length ? `<h4>Datos por confirmar</h4><ul class="open-questions">${questions.map((question) => `<li>${escapeHtml(questionLabel(question))}</li>`).join("")}</ul>` : ""}
-    <h4>Workstreams por departamento</h4><div class="department-list">${sectionsMarkup}</div>
-    ${ticket.handoff_payload ? '<p class="handoff-note">Handoff listo para Parte 2: el payload conserva ticket_id, metadatos y workstreams; no requiere volver a leer el PDF.</p>' : ""}
+    ${arbitrationMarkup}<h4>Workstreams y aprobaciones</h4><div class="department-list">${sectionsMarkup}${ceoMarkup}</div>
+    ${handoffNote}${draftAction}
+    ${finalDocument}${traceMarkup}
   `;
 }
 
-function renderDepartment(section) {
+function renderDepartment(section, approval, conflicts = []) {
   const aspects = section.key_aspects || {};
   const extracts = aspects.source_extracts || [];
   const questions = aspects.open_questions || [];
-  return `<article class="department-item"><header><h5>${escapeHtml(aspects.department_name || section.department_id)}</h5><span>${escapeHtml(aspects.contact || "")}</span></header><p>${escapeHtml(aspects.focus || "")}</p>${extracts.map((excerpt) => `<blockquote>${escapeHtml(excerpt)}</blockquote>`).join("")}${questions.length ? `<ul>${questions.map((question) => `<li>Confirmar ${escapeHtml(questionLabel(question).toLowerCase())}</li>`).join("")}</ul>` : ""}</article>`;
+  const status = approval?.approval_status || section.approval_status || "pendiente";
+  const approver = approvers[section.department_id];
+  const departmentConflicts = conflicts.filter((item) => item.departments.includes(section.department_id));
+  const draft = section.draft_content ? `<details class="draft-preview" open><summary>Borrador</summary><pre>${escapeHtml(section.draft_content)}</pre></details>` : "";
+  const evaluation = section.evaluation_results ? `<p class="evaluation-summary">Evaluación automática: ${section.evaluation_results.overall_pass ? "apta" : "requiere revisión"}</p>` : "";
+  return `<article class="department-item"><header><h5>${escapeHtml(aspects.department_name || section.department_id)}</h5><span>${escapeHtml(aspects.contact || approver || "")}</span><span class="approval-state" data-approval="${escapeHtml(status)}">${escapeHtml(status)}</span></header><p>${escapeHtml(aspects.focus || "")}</p>${extracts.map((excerpt) => `<blockquote>${escapeHtml(excerpt)}</blockquote>`).join("")}${questions.length ? `<ul>${questions.map((question) => `<li>Confirmar ${escapeHtml(questionLabel(question).toLowerCase())}</li>`).join("")}</ul>` : ""}${draft}${evaluation}${renderApprovalCard(section.department_id, approval, "Sign-off", departmentConflicts, section)}</article>`;
+}
+
+function renderApprovalCard(approvalKey, approval, heading, conflicts = [], section = {}) {
+  if (!approval) return "";
+  const status = approval.approval_status || "pendiente";
+  if (status !== "pendiente") return `<p class="approval-note">${escapeHtml(heading)}: ${escapeHtml(status)} · ${escapeHtml(approval.approver || approvers[approvalKey])}${approval.comment ? ` · ${escapeHtml(approval.comment)}` : ""}</p>`;
+  const expected = approvers[approvalKey];
+  const isApprover = normalizeName(currentUserName) === normalizeName(expected);
+  const conflictMarkup = conflicts.map((item) => `<p class="arbitration-note">${escapeHtml(item.trigger_id)}: ${escapeHtml(item.resolution)}</p>`).join("");
+  const approvalBlocked = conflicts.some((item) => item.trigger_id !== "ceo-threshold");
+  const terms = section.evaluation_results?.commercial_terms || {};
+  const commercialFields = approvalKey === "operaciones"
+    ? `<label>Precio por evento (USD)<input type="number" name="price_per_event_usd" min="0" step="0.01" value="${escapeHtml(terms.price_per_event_usd ?? "")}" /></label>`
+    : approvalKey === "procurement"
+      ? `<label>Costo por evento (USD)<input type="number" name="cost_per_event_usd" min="0" step="0.01" value="${escapeHtml(terms.cost_per_event_usd ?? "")}" /></label>`
+      : "";
+  const setupField = approvalKey !== "ceo" ? `<label>Montaje/entrega (días hábiles)<input type="number" name="setup_lead_time_business_days" min="0" step="1" value="${escapeHtml(terms.setup_lead_time_business_days ?? "")}" /></label>` : "";
+  const form = isApprover ? `<form class="approval-form" data-approval-key="${escapeHtml(approvalKey)}"><label>Decisión<select name="action"><option value="approve" ${approvalBlocked ? "disabled" : ""}>Aprobar</option><option value="request_changes">Solicitar cambios</option><option value="reject">Rechazar</option></select></label>${commercialFields}${setupField}<label>Comentario<textarea name="comment" rows="2" maxlength="2000" placeholder="Obligatorio al solicitar cambios"></textarea></label><button type="submit">Registrar decisión</button></form>` : `<p class="approval-note">Pendiente de ${escapeHtml(expected)}. Inicia sesión con el perfil correspondiente para registrar la decisión.</p>`;
+  return `<section class="approval-card"><h5>${escapeHtml(heading)} · ${escapeHtml(expected)}</h5>${conflictMarkup}${form}</section>`;
+}
+
+async function submitApproval(event) {
+  const form = event.target.closest(".approval-form");
+  if (!form) return;
+  event.preventDefault();
+  const approvalKey = form.dataset.approvalKey;
+  const values = new FormData(form);
+  const payload = { action: values.get("action"), comment: String(values.get("comment") || "").trim() };
+  for (const key of ["price_per_event_usd", "cost_per_event_usd", "setup_lead_time_business_days"]) {
+    const value = values.get(key);
+    if (value !== null && value !== "") payload[key] = Number(value);
+  }
+  if (payload.action === "request_changes" && !payload.comment) {
+    setStatus("Describe los cambios solicitados antes de continuar.", true);
+    return;
+  }
+  const submitButton = form.querySelector("button[type=submit]");
+  submitButton.disabled = true;
+  try {
+    const response = await request(`${apiBase}/rfp-intake/${encodeURIComponent(selectedTicketId)}/approvals/${encodeURIComponent(approvalKey)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw await responseError(response, "No se pudo registrar la aprobación.");
+    const result = await response.json();
+    setStatus(`Decisión registrada. Estado del ticket: ${statusLabels[result.status] || result.status}.`);
+    await loadTicket(selectedTicketId);
+  } catch (error) {
+    setStatus(error.message, true);
+    submitButton.disabled = false;
+  }
+}
+
+async function generateDraft() {
+  const button = ticketDetail.querySelector("[data-generate-draft]");
+  if (!button || !selectedTicketId) return;
+  button.disabled = true;
+  setStatus("Generando y evaluando las secciones por departamento...");
+  try {
+    const response = await request(`${apiBase}/rfp-intake/${encodeURIComponent(selectedTicketId)}/generate-draft`, { method: "POST" });
+    if (!response.ok) throw await responseError(response, "No se pudo iniciar la generación.");
+    setStatus("La generación de borradores continúa en segundo plano.");
+    await loadTickets();
+  } catch (error) {
+    setStatus(error.message, true);
+    button.disabled = false;
+  }
+}
+
+async function loadCurrentUser() {
+  try {
+    const response = await request(`${apiBase}/auth/me`);
+    if (!response.ok) throw new Error("No se pudo consultar el perfil.");
+    const user = await response.json();
+    currentUserName = user.profile?.name || "";
+  } catch {
+    currentUserName = "";
+  }
 }
 
 function metadataItem(label, value) {
@@ -181,11 +290,8 @@ async function request(url, options = {}) {
 }
 
 async function responseError(response, fallback) {
-  if (response.status === 413 || response.status === 415) {
-    const payload = await response.json().catch(() => ({}));
-    return new Error(payload.detail || fallback);
-  }
-  return new Error(fallback);
+  const payload = await response.json().catch(() => ({}));
+  return new Error(payload.detail || fallback);
 }
 
 function showWorkspace() {
@@ -220,6 +326,10 @@ function formatDate(value) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(value);
+}
+
+function normalizeName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
 }
 
 function escapeHtml(value) {
