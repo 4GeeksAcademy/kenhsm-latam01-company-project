@@ -28,6 +28,67 @@ def test_draft_generation_requires_authentication():
     assert response.status_code == 401
 
 
+def test_department_approval_requires_authentication():
+    app.dependency_overrides.clear()
+    response = TestClient(app).post(
+        "/rfp-intake/ticket-1/approvals/marketing",
+        json={"action": "approve"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_approval_endpoint_uses_authenticated_profile_and_returns_ticket_state():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    try:
+        with (
+            patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Camila Ospina")) as profile,
+            patch("brasaland_api.modules.rfp_intake.router.respond_to_approval", return_value="esperando_aprobación") as respond,
+        ):
+            response = TestClient(app).post(
+                "/rfp-intake/ticket-1/approvals/marketing",
+                json={"action": "approve", "comment": "Revisado"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"ticket_id": "ticket-1", "status": "esperando_aprobación"}
+    profile.assert_called_once_with("user-1")
+    respond.assert_called_once_with("ticket-1", "marketing", "Camila Ospina", {"action": "approve", "comment": "Revisado"})
+
+
+def test_final_document_endpoint_is_unavailable_until_synthesis():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    try:
+        with patch("brasaland_api.modules.rfp_intake.router.storage.get_final_document", return_value=None):
+            response = TestClient(app).get("/rfp-intake/ticket-1/final-document")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+def test_final_document_endpoint_returns_the_persisted_synthesis():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    document = {
+        "ticket_id": "ticket-1",
+        "document_markdown": "# Approved proposal",
+        "sections": [{"department_id": "marketing", "draft_content": "Approved text"}],
+        "total_estimated_value": 60_000,
+        "currency": "USD",
+        "generated_at": "2026-10-20T12:00:00Z",
+    }
+    try:
+        with patch("brasaland_api.modules.rfp_intake.router.storage.get_final_document", return_value=document):
+            response = TestClient(app).get("/rfp-intake/ticket-1/final-document")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == document
+
+
 def test_upload_rejects_non_pdf_before_persisting():
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
     try:
@@ -101,6 +162,7 @@ def test_draft_generation_claims_only_complete_part_one_handoff():
         with (
             patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
             patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation", return_value=True) as claim,
+            patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Camila Ospina")),
             patch("brasaland_api.modules.rfp_intake.router.process_rfp_draft_ticket") as process,
         ):
             response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
@@ -109,22 +171,53 @@ def test_draft_generation_claims_only_complete_part_one_handoff():
 
     assert response.status_code == 202
     assert response.json() == {"ticket_id": "ticket-1", "status": "generando_borrador"}
-    claim.assert_called_once_with("ticket-1")
+    claim.assert_called_once_with("ticket-1", expected_status="analisis_completo")
     process.assert_called_once_with("ticket-1")
 
 
-def test_draft_generation_rejects_ticket_not_in_part_one_ready_state():
+def test_draft_generation_reopens_ticket_after_human_review():
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    ticket = {
+        "ticket_id": "ticket-1",
+        "status": "needs_human_review",
+        "handoff_payload": {"ticket_id": "ticket-1", "departments_needed": ["marketing"]},
+        "department_sections": [{"department_id": "marketing", "key_aspects": {}}],
+    }
     try:
         with (
-            patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value={"status": "needs_human_review"}),
+            patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
+            patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation", return_value=True) as claim,
+            patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Camila Ospina")),
+            patch("brasaland_api.modules.rfp_intake.router.process_rfp_draft_ticket") as process,
+        ):
+            response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    claim.assert_called_once_with("ticket-1", expected_status="needs_human_review")
+    process.assert_called_once_with("ticket-1")
+
+
+def test_only_marketing_owner_can_reopen_rejected_rfp_generation():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    ticket = {
+        "ticket_id": "ticket-1",
+        "status": "needs_human_review",
+        "handoff_payload": {"ticket_id": "ticket-1", "departments_needed": ["marketing"]},
+        "department_sections": [{"department_id": "marketing", "key_aspects": {}}],
+    }
+    try:
+        with (
+            patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
+            patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Felipe Guerrero")),
             patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation") as claim,
         ):
             response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 409
+    assert response.status_code == 403
     claim.assert_not_called()
 
 
@@ -156,7 +249,9 @@ def test_background_draft_generation_persists_progress_and_final_handoff():
     with (
         patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_draft_sections") as persist,
+        patch("brasaland_api.modules.rfp_intake.router.storage.persist_execution_events"),
         patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
+        patch("brasaland_api.modules.rfp_intake.router.initialize_approval_branches"),
         patch("brasaland_api.modules.rfp_intake.router.run_rfp_draft_generation", side_effect=fake_generation),
     ):
         process_rfp_draft_ticket("ticket-1")
@@ -219,6 +314,7 @@ def test_background_pipeline_completes_with_synthesizer_handoff():
     with (
         patch("brasaland_api.modules.rfp_intake.router.run_rfp_intake", return_value=result),
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_analysis") as persist,
+        patch("brasaland_api.modules.rfp_intake.router.storage.persist_execution_events"),
         patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
     ):
         process_rfp_ticket("ticket-1", "/tmp/request.pdf")
@@ -234,6 +330,7 @@ def test_background_pipeline_marks_invalid_request_discarded():
     with (
         patch("brasaland_api.modules.rfp_intake.router.run_rfp_intake", return_value=result),
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_analysis") as persist,
+        patch("brasaland_api.modules.rfp_intake.router.storage.persist_execution_events"),
         patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
     ):
         process_rfp_ticket("ticket-2", "/tmp/invalid.pdf")

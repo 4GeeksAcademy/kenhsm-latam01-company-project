@@ -45,6 +45,29 @@
 .department-item ul, .open-questions { margin: .35rem 0 0; padding-left: 1.2rem; }
 .processing-error { color: #8c2e24; font-weight: 700; }
 .handoff-note { margin-top: 1rem; padding: .7rem 0; border-top: 1px solid var(--line); color: #58675e; font-size: .87rem; }
+.rfp-draft-action { margin-top: .35rem; }
+.approval-state { display: inline-flex; width: fit-content; border-radius: 4px; padding: .2rem .45rem; background: #fff1cd; color: #674900; font-size: .77rem; font-weight: 700; }
+.approval-state[data-approval="aprobado"] { background: #dff1e6; color: #205b45; }
+.approval-state[data-approval="rechazado"], .approval-state[data-approval="cambios_solicitados"] { background: #fce9e7; color: #8c2e24; }
+.draft-preview, .execution-trace, .final-document { margin-top: .75rem; border-top: 1px solid var(--line); padding-top: .65rem; }
+.draft-preview summary, .execution-trace summary { cursor: pointer; font-weight: 700; }
+.draft-preview pre, .final-document pre, .execution-trace pre { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border-left: 3px solid var(--line); padding: .7rem; background: #f5f7f5; font: .88rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.evaluation-summary, .approval-note { color: #58675e; font-size: .88rem; }
+.approval-card { max-width: 620px; display: grid; gap: .6rem; margin-top: .8rem; padding: .8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.arbitration-summary { border-left: 3px solid #a33a2b; margin: 1rem 0; padding: .2rem .8rem; background: #fff4f1; }
+.arbitration-summary h4 { margin: .4rem 0; }
+.arbitration-summary ul { margin: .35rem 0; padding-left: 1.2rem; }
+.arbitration-note { margin: 0; color: #8c2e24; font-size: .83rem; }
+.approval-card h5 { margin: 0; }
+.approval-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; gap: .6rem; }
+.approval-form label { display: grid; gap: .3rem; font-size: .83rem; font-weight: 700; }
+.approval-form select, .approval-form textarea { min-width: 0; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); padding: .55rem; font: inherit; }
+.approval-form button { border: 0; border-radius: 5px; background: var(--primary); color: #fff; cursor: pointer; font: inherit; font-weight: 700; padding: .65rem .75rem; }
+.approval-form button:disabled { opacity: .6; cursor: wait; }
+.execution-trace ol { display: grid; gap: .65rem; padding-left: 1.25rem; }
+.execution-trace li { padding-left: .2rem; }
+.execution-trace time { display: block; color: #58675e; font-size: .78rem; }
+.final-document a { display: inline-block; margin: .4rem 0 1rem; color: var(--primary); font-weight: 700; }
 .rfp-page .form-status.is-error { color: #8c2e24; }
 
 @media (max-width: 860px) {
@@ -62,4 +85,6 @@
   .rfp-upload-controls button { width: 100%; }
   .metadata-grid { grid-template-columns: 1fr; }
   .ticket-title-row { flex-direction: column; }
+  .approval-form { grid-template-columns: 1fr; }
+  .approval-form button { width: 100%; }
 }
