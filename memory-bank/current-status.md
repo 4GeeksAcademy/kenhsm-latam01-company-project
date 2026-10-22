@@ -148,4 +148,10 @@ Fixed arbitration evaluates structured event price/cost, structured setup lead t
 
 The final combined backend/RFP regression run reported 133 passed and five failures outside the RFP workflow: stale response-shape expectations in auth/purchase-order tests, the HR list OpenAPI projection, and two telemetry envelope expectations. The focused RFP/API/OpenAPI checks pass.
 
+## Real-Time RFP Notifications Decision
+
+Added authenticated `GET /rfp-intake/events` with named `rfp_ticket_created` frames, a 15-second comment keep-alive, and process-local per-connection fan-out. The event is published after classification accepts the document and metadata is persisted; invalid PDFs do not emit it. Its payload includes `ticket_id`, `rfp_id`, `client_name`, `location`, `service_type`, `status`, and `created_at`. The existing workflow stores `analizando`; the SSE contract serializes the briefing's `status: "analyzing"` without changing downstream ticket states.
+
+The backoffice uses authenticated `fetch`/`ReadableStream`, exponential reconnect backoff capped at 30 seconds, and list reconciliation on every stream connection. Recovery filters from the latest known `created_at`, paginates in 50-ticket batches, and deduplicates by `ticket_id`; an event does not trigger a full list refetch. The broker is process-local, so multi-worker deployment requires shared pub/sub. Manual reconnection verification steps and the 50-connection scaling tradeoff are documented in `uis/backoffice/README.md`.
+
 

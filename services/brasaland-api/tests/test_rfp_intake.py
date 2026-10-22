@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.main import app
 from brasaland_api.modules.rfp_intake import storage
-from brasaland_api.modules.rfp_intake.router import process_rfp_draft_ticket, process_rfp_ticket
+from brasaland_api.modules.rfp_intake.events import rfp_event_broker
+from brasaland_api.modules.rfp_intake.router import process_rfp_draft_ticket, process_rfp_ticket, stream_rfp_events
 
 
 def test_rfp_upload_requires_authentication():
@@ -26,6 +29,40 @@ def test_draft_generation_requires_authentication():
     response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
 
     assert response.status_code == 401
+
+
+def test_rfp_event_stream_requires_authentication():
+    app.dependency_overrides.clear()
+
+    response = TestClient(app).get("/rfp-intake/events")
+
+    assert response.status_code == 401
+
+
+def test_rfp_event_stream_emits_named_json_sse_frame():
+    async def read_frame():
+        request = SimpleNamespace(is_disconnected=AsyncMock(return_value=False))
+        response = await stream_rfp_events(request)
+        iterator = response.body_iterator
+        connected_frame = await anext(iterator)
+        payload = {
+            "ticket_id": "tkt_0192",
+            "rfp_id": "rfp_0088",
+            "status": "analyzing",
+            "created_at": "2026-10-22T14:32:00+00:00",
+        }
+        rfp_event_broker.publish(payload)
+        event_frame = await anext(iterator)
+        await iterator.aclose()
+        return response, connected_frame, event_frame, payload
+
+    response, connected_frame, event_frame, expected_payload = asyncio.run(read_frame())
+    lines = event_frame.splitlines()
+
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert connected_frame == ": connected\n\n"
+    assert lines[0] == "event: rfp_ticket_created"
+    assert json.loads(lines[1].removeprefix("data: ")) == expected_payload
 
 
 def test_department_approval_requires_authentication():
@@ -127,7 +164,12 @@ def test_upload_persists_pdf_and_queues_background_pipeline(tmp_path):
     assert ticket["ticket_id"] == ticket_id
     assert ticket["raw_pdf_path"] == f"data/raw/rfp-intake/{ticket_id}.pdf"
     assert (raw_directory / f"{ticket_id}.pdf").read_bytes() == b"%PDF-1.4 sample"
-    process_ticket.assert_called_once_with(ticket_id, str(raw_directory / f"{ticket_id}.pdf"))
+    process_ticket.assert_called_once_with(
+        ticket_id,
+        str(raw_directory / f"{ticket_id}.pdf"),
+        ticket["rfp_id"],
+        ticket["created_at"],
+    )
 
 
 def test_ticket_get_returns_persisted_status_and_handoff():
@@ -148,6 +190,22 @@ def test_ticket_get_returns_persisted_status_and_handoff():
     assert response.status_code == 200
     assert response.json()["status"] == "analisis_completo"
     assert response.json()["handoff_payload"]["ticket_id"] == "ticket-1"
+
+
+def test_ticket_list_supports_created_after_and_pagination():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id="user-1")
+    created_after = "2026-10-22T14:32:00+00:00"
+    try:
+        with patch("brasaland_api.modules.rfp_intake.router.storage.list_tickets", return_value=[]) as list_tickets:
+            response = TestClient(app).get(
+                "/rfp-intake",
+                params={"limit": 50, "offset": 100, "created_after": created_after},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    list_tickets.assert_called_once_with(limit=50, offset=100, created_after=created_after)
 
 
 def test_draft_generation_claims_only_complete_part_one_handoff():
@@ -316,10 +374,20 @@ def test_background_pipeline_completes_with_synthesizer_handoff():
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_analysis") as persist,
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_execution_events"),
         patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
+        patch("brasaland_api.modules.rfp_intake.router.rfp_event_broker.publish") as publish_event,
     ):
-        process_rfp_ticket("ticket-1", "/tmp/request.pdf")
+        process_rfp_ticket("ticket-1", "/tmp/request.pdf", "rfp-1", "2026-10-22T14:32:00+00:00")
 
     persist.assert_called_once_with("ticket-1", result["metadata"], result["department_results"])
+    publish_event.assert_called_once_with({
+        "ticket_id": "ticket-1",
+        "rfp_id": "rfp-1",
+        "client_name": "Andes Tech Solutions",
+        "location": None,
+        "service_type": None,
+        "status": "analyzing",
+        "created_at": "2026-10-22T14:32:00+00:00",
+    })
     assert update.call_args.args[0] == "ticket-1"
     assert update.call_args.args[1]["status"] == "analisis_completo"
     assert update.call_args.args[1]["handoff_payload"] == result["handoff_payload"]
@@ -332,10 +400,12 @@ def test_background_pipeline_marks_invalid_request_discarded():
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_analysis") as persist,
         patch("brasaland_api.modules.rfp_intake.router.storage.persist_execution_events"),
         patch("brasaland_api.modules.rfp_intake.router.storage.update_ticket") as update,
+        patch("brasaland_api.modules.rfp_intake.router.rfp_event_broker.publish") as publish_event,
     ):
         process_rfp_ticket("ticket-2", "/tmp/invalid.pdf")
 
     persist.assert_not_called()
+    publish_event.assert_not_called()
     assert update.call_args.args[1]["status"] == "descartado"
     assert update.call_args.args[1]["processing_error"] == "No es RFP."
 

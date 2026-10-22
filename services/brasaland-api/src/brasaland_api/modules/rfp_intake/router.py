@@ -9,12 +9,14 @@ from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from brasaland_api.core.deps import get_current_user
 from brasaland_api.modules.profiles import services as profile_services
 from brasaland_api.modules.rfp_intake import storage
+from brasaland_api.modules.rfp_intake.events import RFP_TICKET_CREATED, encode_sse_event, rfp_event_broker
 from brasaland_api.modules.rfp_intake.approvals import initialize_approval_branches, respond_to_approval
 from brasaland_api.modules.rfp_intake.storage import RFPStorageError
 from brasaland_api.modules.rfp_intake.drafting import run_rfp_draft_generation
@@ -69,7 +71,7 @@ def _execution_event(agent: str, input_value, output_value) -> dict:
     }
 
 
-def process_rfp_ticket(ticket_id: str, pdf_path: str) -> None:
+def process_rfp_ticket(ticket_id: str, pdf_path: str, rfp_id: str | None = None, created_at: str | None = None) -> None:
     try:
         result = run_rfp_intake(ticket_id, pdf_path)
         classification = result.get("classification", {})
@@ -95,7 +97,18 @@ def process_rfp_ticket(ticket_id: str, pdf_path: str) -> None:
             return
 
         sections = result.get("department_results", [])
-        storage.persist_analysis(ticket_id, result.get("metadata", {}), sections)
+        metadata = result.get("metadata", {})
+        storage.persist_analysis(ticket_id, metadata, sections)
+        if rfp_id and created_at:
+            rfp_event_broker.publish({
+                "ticket_id": ticket_id,
+                "rfp_id": rfp_id,
+                "client_name": metadata.get("client_name"),
+                "location": metadata.get("location"),
+                "service_type": metadata.get("service_type"),
+                "status": "analyzing",
+                "created_at": created_at,
+            })
         storage.update_ticket(ticket_id, {
             "status": "analisis_completo",
             "processing_error": None,
@@ -219,16 +232,48 @@ async def submit_rfp(
         pdf_path.unlink(missing_ok=True)
         raise HTTPException(status_code=503, detail="La recepción de RFP no está disponible.") from error
 
-    background_tasks.add_task(process_rfp_ticket, ticket_id, str(pdf_path))
+    background_tasks.add_task(process_rfp_ticket, ticket_id, str(pdf_path), rfp_id, now)
     return RFPSubmissionAccepted(ticket_id=ticket_id, status="analizando")
 
 
 @router.get("")
-def read_rfp_tickets(_current_user=Depends(get_current_user)) -> list[dict]:
+def read_rfp_tickets(
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    created_after: datetime | None = None,
+    _current_user=Depends(get_current_user),
+) -> list[dict]:
     try:
-        return storage.list_tickets()
+        return storage.list_tickets(limit=limit, offset=offset, created_after=created_after.isoformat() if created_after else None)
     except RFPStorageError as error:
         raise HTTPException(status_code=503, detail="No se pudieron consultar los tickets.") from error
+
+
+@router.get("/events")
+async def stream_rfp_events(request: Request) -> StreamingResponse:
+    async def event_stream():
+        subscriber = rfp_event_broker.subscribe()
+        try:
+            yield ": connected\n\n"
+            while not await request.is_disconnected():
+                try:
+                    event = await asyncio.wait_for(subscriber.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": keep-alive\n\n"
+                    continue
+                yield encode_sse_event(RFP_TICKET_CREATED, event)
+        finally:
+            rfp_event_broker.unsubscribe(subscriber)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{ticket_id}", response_model=dict[str, Any])
