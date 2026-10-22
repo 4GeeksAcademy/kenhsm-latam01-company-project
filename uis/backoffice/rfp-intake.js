@@ -8,17 +8,24 @@ const workspace = document.querySelector("#rfp-workspace");
 const pageStatus = document.querySelector("#page-status");
 const ticketList = document.querySelector("#ticket-list");
 const ticketDetail = document.querySelector("#ticket-detail");
+const liveNotification = document.querySelector("#live-notification");
+const streamStatus = document.querySelector("#stream-status");
 const logoutButton = document.querySelector("#logout-button");
 const uploadForm = document.querySelector("#upload-form");
 const uploadButton = document.querySelector("#upload-button");
 const statusLabels = {
-  analizando: "Analizando", descartado: "Descartado", analisis_completo: "Análisis completo",
+  analizando: "Analizando", analyzing: "Analizando", descartado: "Descartado", analisis_completo: "Análisis completo",
   generando_borrador: "Generando borradores", "en_evaluación": "En evaluación",
   needs_human_review: "Revisión requerida", "esperando_aprobación": "Esperando aprobación", terminado: "Terminado",
 };
 const approvers = { marketing: "Camila Ospina", operaciones: "Felipe Guerrero", procurement: "Lucía Fernández", training: "Jake Morrison", ceo: "Mariana Restrepo" };
 let selectedTicketId = null;
-let refreshTimer = null;
+let streamController = null;
+let reconnectTimer = null;
+let reconnectAttempt = 0;
+let ticketSummaries = new Map();
+let lastTicketCreatedAt = null;
+const notifiedTicketIds = new Set();
 let currentUserName = "";
 
 loginForm.addEventListener("submit", login);
@@ -41,7 +48,7 @@ if (localStorage.getItem(tokenKey)) {
   showWorkspace();
   await loadCurrentUser();
   await loadTickets();
-  refreshTimer = setInterval(loadTickets, 5000);
+  startRfpEventStream();
 }
 
 async function login(event) {
@@ -60,7 +67,7 @@ async function login(event) {
     showWorkspace();
     await loadCurrentUser();
     await loadTickets();
-    refreshTimer = setInterval(loadTickets, 5000);
+    startRfpEventStream();
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -94,22 +101,139 @@ async function submitRfp(event) {
   }
 }
 
-async function loadTickets() {
+async function loadTickets({ notifyNew = false, throwErrors = false, recoverMissed = false } = {}) {
   if (!localStorage.getItem(tokenKey)) return;
   try {
-    const response = await request(`${apiBase}/rfp-intake`);
-    if (!response.ok) throw await responseError(response, "No se pudieron cargar los tickets.");
-    const tickets = await response.json();
-    renderTicketList(tickets);
-    if (!selectedTicketId && tickets.length) selectedTicketId = tickets[0].ticket_id;
+    const tickets = [];
+    const recoveryCursor = recoverMissed ? lastTicketCreatedAt : null;
+    let offset = 0;
+    let page;
+    do {
+      const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+      if (recoveryCursor) params.set("created_after", recoveryCursor);
+      const response = await request(`${apiBase}/rfp-intake?${params}`);
+      if (!response.ok) throw await responseError(response, "No se pudieron cargar los tickets.");
+      page = await response.json();
+      tickets.push(...page);
+      offset += page.length;
+    } while (recoverMissed && page.length === 50);
+
+    for (const ticket of tickets) {
+      const isNew = !ticketSummaries.has(ticket.ticket_id);
+      ticketSummaries.set(ticket.ticket_id, ticket);
+      if (notifyNew && isNew) showTicketNotification(ticket);
+      if (ticket.created_at && (!lastTicketCreatedAt || ticket.created_at > lastTicketCreatedAt)) {
+        lastTicketCreatedAt = ticket.created_at;
+      }
+    }
+    const sortedTickets = [...ticketSummaries.values()].sort((first, second) => new Date(second.created_at) - new Date(first.created_at));
+    renderTicketList(sortedTickets);
+    if (!selectedTicketId && sortedTickets.length) selectedTicketId = sortedTickets[0].ticket_id;
     if (selectedTicketId) await loadTicket(selectedTicketId);
     else ticketDetail.innerHTML = '<p class="detail-empty">Aún no hay tickets. Sube una RFP para iniciar.</p>';
-    if (tickets.some((ticket) => ["analizando", "generando_borrador", "en_evaluación", "esperando_aprobación"].includes(ticket.status))) {
-      setStatus("Actualización automática cada 5 segundos.");
-    }
   } catch (error) {
     setStatus(error.message, true);
+    if (throwErrors) throw error;
   }
+}
+
+function startRfpEventStream() {
+  if (!localStorage.getItem(tokenKey) || streamController || reconnectTimer) return;
+  const controller = new AbortController();
+  streamController = controller;
+  void connectRfpEventStream(controller);
+}
+
+async function connectRfpEventStream(controller) {
+  let stableTimer = null;
+  try {
+    const token = localStorage.getItem(tokenKey);
+    const response = await fetch(`${apiBase}/rfp-intake/events`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    if (response.status === 401) {
+      logout();
+      return;
+    }
+    if (!response.ok || !response.headers.get("content-type")?.startsWith("text/event-stream")) {
+      throw new Error("No se pudo abrir el canal de notificaciones.");
+    }
+    streamStatus.textContent = "Notificaciones en vivo conectadas.";
+    stableTimer = setTimeout(() => { reconnectAttempt = 0; }, 30_000);
+    await loadTickets({ notifyNew: true, throwErrors: true, recoverMissed: true });
+    await consumeRfpEventStream(response.body, controller.signal);
+    if (!controller.signal.aborted) throw new Error("El canal de notificaciones se cerró.");
+  } catch (error) {
+    if (!controller.signal.aborted) scheduleReconnect();
+  } finally {
+    clearTimeout(stableTimer);
+    if (streamController === controller) streamController = null;
+  }
+}
+
+async function consumeRfpEventStream(body, signal) {
+  if (!body) throw new Error("El navegador no pudo leer el canal de notificaciones.");
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (!signal.aborted) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop();
+      for (const frame of frames) handleSseFrame(frame);
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) handleSseFrame(buffer);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function handleSseFrame(frame) {
+  let eventName = "message";
+  const dataLines = [];
+  for (const line of frame.split(/\r?\n/)) {
+    if (!line || line.startsWith(":")) continue;
+    const separator = line.indexOf(":");
+    const field = separator < 0 ? line : line.slice(0, separator);
+    const value = separator < 0 ? "" : line.slice(separator + 1).replace(/^ /, "");
+    if (field === "event") eventName = value;
+    if (field === "data") dataLines.push(value);
+  }
+  if (!dataLines.length || eventName !== "rfp_ticket_created") return;
+  const ticket = JSON.parse(dataLines.join("\n"));
+  if (!ticket.ticket_id || ticketSummaries.has(ticket.ticket_id)) return;
+  ticketSummaries.set(ticket.ticket_id, ticket);
+  if (ticket.created_at && (!lastTicketCreatedAt || ticket.created_at > lastTicketCreatedAt)) {
+    lastTicketCreatedAt = ticket.created_at;
+  }
+  const tickets = [...ticketSummaries.values()].sort((first, second) => new Date(second.created_at) - new Date(first.created_at));
+  renderTicketList(tickets);
+  showTicketNotification(ticket);
+}
+
+function showTicketNotification(ticket) {
+  if (notifiedTicketIds.has(ticket.ticket_id)) return;
+  notifiedTicketIds.add(ticket.ticket_id);
+  const subject = ticket.client_name || `RFP ${ticket.rfp_id || ""}`.trim();
+  const location = ticket.location ? ` · ${ticket.location}` : "";
+  liveNotification.textContent = `Nueva RFP: ${subject}${location} · Ticket ${ticket.ticket_id}. Requiere procesamiento.`;
+  liveNotification.hidden = false;
+}
+
+function scheduleReconnect() {
+  if (!localStorage.getItem(tokenKey) || reconnectTimer) return;
+  reconnectAttempt += 1;
+  const delay = Math.min(1000 * (2 ** (reconnectAttempt - 1)), 30_000);
+  streamStatus.textContent = `Conexión interrumpida. Reintentando en ${Math.ceil(delay / 1000)} s.`;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    startRfpEventStream();
+  }, delay);
 }
 
 async function loadTicket(ticketId) {
@@ -302,14 +426,22 @@ function showWorkspace() {
 
 function logout() {
   localStorage.removeItem(tokenKey);
-  clearInterval(refreshTimer);
-  refreshTimer = null;
+  streamController?.abort();
+  streamController = null;
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+  reconnectAttempt = 0;
   selectedTicketId = null;
+  ticketSummaries.clear();
+  lastTicketCreatedAt = null;
+  notifiedTicketIds.clear();
+  liveNotification.hidden = true;
   workspace.hidden = true;
   loginForm.hidden = false;
   logoutButton.hidden = true;
   ticketList.replaceChildren();
   ticketDetail.innerHTML = '<p class="detail-empty">Inicia sesión para consultar los tickets.</p>';
+  streamStatus.textContent = "Notificaciones desconectadas.";
   setStatus("Sesión cerrada.");
 }
 

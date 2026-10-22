@@ -238,9 +238,17 @@ def get_ticket(ticket_id: str) -> dict[str, Any] | None:
     return ticket
 
 
-def list_tickets(limit: int = 50) -> list[dict[str, Any]]:
+def list_tickets(limit: int = 50, offset: int = 0, created_after: str | None = None) -> list[dict[str, Any]]:
+    params = {
+        "select": "ticket_id,rfp_id,status,raw_pdf_path,processing_error,created_at,updated_at",
+        "order": "created_at.desc",
+        "limit": str(limit),
+        "offset": str(offset),
+    }
+    if created_after:
+        params["created_at"] = f"gte.{created_after}"
     return _request(
         "GET",
         "rfp_tickets",
-        params={"select": "ticket_id,rfp_id,status,raw_pdf_path,processing_error,created_at,updated_at", "order": "created_at.desc", "limit": str(limit)},
+        params=params,
     )
