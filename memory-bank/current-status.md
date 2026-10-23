@@ -154,4 +154,12 @@ Added authenticated `GET /rfp-intake/events` with named `rfp_ticket_created` fra
 
 The backoffice uses authenticated `fetch`/`ReadableStream`, exponential reconnect backoff capped at 30 seconds, and list reconciliation on every stream connection. Recovery filters from the latest known `created_at`, paginates in 50-ticket batches, and deduplicates by `ticket_id`; an event does not trigger a full list refetch. The broker is process-local, so multi-worker deployment requires shared pub/sub. Manual reconnection verification steps and the 50-connection scaling tradeoff are documented in `uis/backoffice/README.md`.
 
+## Manager Support WebSocket Chat Decision
+
+Added `/agent/chat/{session_id}` for the existing `manager_support` graph. The handshake validates the existing backoffice JWT before accepting the socket, binds the `ChatSession` to the authenticated `user_id` and a known `location_id`, and restores stored messages through `session_snapshot`. SQLite persists session metadata, messages, partial assistant output, and per-session event sequence at `CHAT_SESSION_DB_PATH`.
+
+The graph's streaming route uses LangGraph custom events and an async OpenAI stream. `interrupt_requested` cancels the active producer and closes its model stream; this is distinct from HITL `interrupt()`. The assistant partial remains a separate `interrupted` message, and redirected input starts a new user/assistant turn. `SessionEventBus` publishes once per `chat.<session_id>` channel to multiple socket subscribers; the current implementation is process-local, so multi-worker deployment requires a shared broker and distributed generation ownership. Reconnect recovery reads message history from SQLite and marks stale `generating` messages interrupted if no producer survived a backend restart.
+
+The internal UI is `uis/backoffice/manager-chat.html`; it reuses the backoffice JWT key, stores the session/location per tab, reconnects with capped exponential backoff, and rehydrates before enabling input. Verification: `uv --project services/brasaland-api run pytest services/brasaland-api/tests/test_agent_chat.py services/brasaland-api/tests/test_agent_guardrails.py tests/pipelines/test_langgraph_agent.py -q` passed (29 tests); `node --check` passed for the chat module and updated navigation. Manual browser network-loss/reconnect verification remains documented in `uis/backoffice/README.md`.
+
 

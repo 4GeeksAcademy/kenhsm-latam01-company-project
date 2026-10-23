@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Chat operativo en tiempo real con manager_support." />
+  <meta name="theme-color" content="#f3f6f4" />
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="manager-chat.css" />
+  <title>Asistente en vivo | Brasaland</title>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>Backoffice</h1>
+      <nav aria-label="Navegación principal">
+        <a href="./index.html">Operaciones</a>
+        <a href="./reporting.html">Reporte semanal</a>
+        <a href="./telemetry.html">Reporte técnico</a>
+        <a href="./rfp-intake.html">Recepción RFP</a>
+        <a href="./manager-chat.html" aria-current="page">Asistente en vivo</a>
+      </nav>
+    </aside>
+    <main class="content manager-chat-page">
+      <header class="manager-chat-header">
+        <div>
+          <p class="kicker">Operaciones · Manager support</p>
+          <h2>Asistente en vivo</h2>
+        </div>
+        <button id="logout-button" class="chat-secondary-button" type="button" hidden>Cerrar sesión</button>
+      </header>
+
+      <form id="login-form" class="manager-login">
+        <h3>Iniciar sesión</h3>
+        <label>Correo electrónico<input name="username" type="email" autocomplete="username" required /></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
+        <button type="submit">Entrar al chat</button>
+      </form>
+
+      <section id="chat-app" class="manager-chat-app" hidden aria-label="Chat con el asistente operativo">
+        <div class="chat-toolbar">
+          <label for="location-id">Local
+            <select id="location-id" required>
+              <option value="">Selecciona un local</option>
+              <option value="COL-01">COL-01 · Medellín Centro</option>
+              <option value="COL-02">COL-02 · Medellín Laureles</option>
+              <option value="COL-03">COL-03 · Medellín Envigado</option>
+              <option value="COL-04">COL-04 · Medellín Bello</option>
+              <option value="COL-05">COL-05 · Medellín Itagüí</option>
+              <option value="COL-06">COL-06 · Bogotá Chapinero</option>
+              <option value="COL-07">COL-07 · Bogotá Usaquén</option>
+              <option value="COL-08">COL-08 · Cali Granada</option>
+              <option value="COL-09">COL-09 · Barranquilla Norte</option>
+              <option value="COL-10">COL-10 · Central</option>
+              <option value="FLA-01">FLA-01 · Miami Doral</option>
+              <option value="FLA-02">FLA-02 · Miami Hialeah</option>
+              <option value="FLA-03">FLA-03 · Miami Kendall</option>
+              <option value="FLA-04">FLA-04 · Orlando International</option>
+            </select>
+          </label>
+          <button id="connect-button" class="chat-primary-button" type="button">Conectar</button>
+          <button id="new-session-button" class="chat-secondary-button" type="button">Nueva conversación</button>
+          <p id="connection-status" class="chat-connection-status" role="status" aria-live="polite">Sin conexión</p>
+        </div>
+
+        <ol id="chat-messages" class="chat-messages" aria-live="polite" aria-relevant="additions text"></ol>
+
+        <form id="chat-form" class="chat-compose">
+          <label class="visually-hidden" for="chat-input">Mensaje para el asistente</label>
+          <textarea id="chat-input" rows="2" maxlength="3000" placeholder="Pregunta sobre la operación de tu local…" required></textarea>
+          <button id="send-button" class="chat-primary-button" type="submit" disabled>Enviar</button>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./manager-chat.js"></script>
+</body>
+</html>
