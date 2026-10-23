@@ -22,6 +22,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from brasaland_api.core.config import get_settings
 from brasaland_api.core.schemas import HealthOut
 from brasaland_api.modules.agent.router import router as agent_router
+from brasaland_api.modules.agent.chat import router as agent_chat_router
 from brasaland_api.modules.auth.router import router as auth_router
 from brasaland_api.modules.hr.router import router as hr_router
 from brasaland_api.modules.knowledge.router import router as knowledge_router
@@ -88,6 +89,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(agent_router)
+app.include_router(agent_chat_router)
 app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(operations_router)
