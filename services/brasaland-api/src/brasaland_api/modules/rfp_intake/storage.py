@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from brasaland_api.core.config import Settings, get_settings
+from brasaland_api.core.supabase_auth import supabase_auth_headers
 
 
 class RFPStorageError(RuntimeError):
@@ -24,13 +25,12 @@ def _request(
     settings: Settings | None = None,
 ) -> Any:
     settings = settings or get_settings()
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    auth_headers = supabase_auth_headers(settings)
+    if not settings.supabase_url or auth_headers is None:
         raise RFPStorageError("Supabase storage is not configured")
 
-    secret = settings.supabase_service_role_key.get_secret_value()
     headers = {
-        "apikey": secret,
-        "Authorization": f"Bearer {secret}",
+        **auth_headers,
         "Content-Type": "application/json",
         "Accept-Profile": "public",
         "Content-Profile": "public",

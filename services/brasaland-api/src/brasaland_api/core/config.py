@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     tinydb_path: str = "data/db.json"
     supabase_url: str | None = None
+    supabase_secret_key: SecretStr | None = None
     supabase_service_role_key: SecretStr | None = None
     rfp_checkpoint_path: str = "data/state/rfp_approval_checkpoints.sqlite3"
     telemetry_endpoint: str = "http://localhost:8000/telemetry/events"

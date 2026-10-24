@@ -70,6 +70,7 @@ def test_insert_events_sends_all_rows_in_one_supabase_post(monkeypatch: pytest.M
     monkeypatch.setattr(storage.httpx, "post", fake_post)
     settings = Settings(
         supabase_url="https://brasaland.supabase.co",
+        supabase_secret_key=None,
         supabase_service_role_key=SecretStr("test-service-role-key"),
         _env_file=None,
     )
@@ -86,7 +87,15 @@ def test_insert_events_sends_all_rows_in_one_supabase_post(monkeypatch: pytest.M
 
 def test_insert_events_requires_supabase_configuration() -> None:
     with pytest.raises(SupabaseStorageError, match="not configured"):
-        insert_events([make_event()], settings=Settings(_env_file=None))
+        insert_events(
+            [make_event()],
+            settings=Settings(
+                supabase_url=None,
+                supabase_secret_key=None,
+                supabase_service_role_key=None,
+                _env_file=None,
+            ),
+        )
 
 
 def test_insert_events_wraps_postgrest_errors(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -96,6 +105,7 @@ def test_insert_events_wraps_postgrest_errors(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(storage.httpx, "post", fail_post)
     settings = Settings(
         supabase_url="https://brasaland.supabase.co",
+        supabase_secret_key=None,
         supabase_service_role_key=SecretStr("test-service-role-key"),
         _env_file=None,
     )

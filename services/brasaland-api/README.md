@@ -77,16 +77,17 @@ The manager-support graph automatically routes incident references (for example,
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. |
 | `TINYDB_PATH` | Path to the TinyDB JSON file (default `data/db.json`). |
 | `AGENT_MEMORY_DB_PATH` | SQLite file for per-user approved agent notes and proposal audit; defaults to `~/.local/state/brasaland/agent_memory.sqlite3`. Set to a durable volume in deployment. |
-| `SUPABASE_URL` | Supabase project URL used by the telemetry batch writer. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Secret server-side key used only by FastAPI; never expose it to the browser or commit it. |
+| `SUPABASE_URL` | Supabase project URL used by the API's PostgREST integrations. |
+| `SUPABASE_SECRET_KEY` | Current server-side Supabase secret API key (`sb_secret_...`); used as `apikey` and never exposed to the browser or committed. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Legacy JWT-style service role key; supported for compatibility and used as both `apikey` and bearer token. Keep it server-side and never commit it. |
 | `RFP_CHECKPOINT_PATH` | Durable SQLite checkpoint file for independently resumable RFP approval branches (default `data/state/rfp_approval_checkpoints.sqlite3`). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
 
 ## Telemetry storage
 
-Apply `migrations/001_create_telemetry_events.sql` to the Supabase project before enabling ingestion. It creates the append-only table, the timestamp/event-type/JSONB indexes, and insert-only access for `service_role`. Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the API's local `.env` or deployment secret store. The receiver validates events individually and sends all accepted rows in one PostgREST request. `tags` contains exactly the validated event `properties`; envelope IDs are not duplicated there.
+Apply `migrations/001_create_telemetry_events.sql` to the Supabase project before enabling ingestion. It creates the append-only table, the timestamp/event-type/JSONB indexes, and insert-only access for `service_role`. Configure `SUPABASE_URL` and either `SUPABASE_SECRET_KEY` or the legacy `SUPABASE_SERVICE_ROLE_KEY` in the API's local `.env` or deployment secret store. The receiver validates events individually and sends all accepted rows in one PostgREST request. `tags` contains exactly the validated event `properties`; envelope IDs are not duplicated there.
 
-`GET /telemetry/report` is a technical report for event volume, error rate, API latency, and daily authentication failures. It reads `telemetry_events` through read-only PostgREST queries, applies a 7-day UTC window by default, and caches each period for 60 seconds. Run its isolated tests with `PYTHONPATH=src:../.. uv run pytest tests/test_telemetry_analysis.py -q`. A live report requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the endpoint returns a generic 503 while they are unset.
+`GET /telemetry/report` is a technical report for event volume, error rate, API latency, and daily authentication failures. It reads `telemetry_events` through read-only PostgREST queries, applies a 7-day UTC window by default, and caches each period for 60 seconds. Run its isolated tests with `PYTHONPATH=src:../.. uv run pytest tests/test_telemetry_analysis.py -q`. A live report requires `SUPABASE_URL` and either `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`; the endpoint returns a generic 503 while they are unset.
 
 Analysis uses Pandas and remains separate from the weekly business pipeline in `services/reporting/`; it only selects `timestamp`, `event_type`, `level`, `value`, and `tags` from `telemetry_events` and never writes to that table.
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
@@ -101,7 +102,7 @@ Run the API unit tests from this directory with `PYTHONPATH=src python -m unitte
 
 ## RFP Ticket Intake
 
-Apply `migrations/003_create_rfp_intake.sql` and `migrations/004_create_rfp_approvals.sql` to the Supabase project before enabling the complete RFP workflow. They create ticket/section persistence, department and CEO approvals, execution events, and final documents. The API uses the existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` settings; configure them only in the backend environment.
+Apply `migrations/003_create_rfp_intake.sql` and `migrations/004_create_rfp_approvals.sql` to the Supabase project before enabling the complete RFP workflow. They create ticket/section persistence, department and CEO approvals, execution events, and final documents. The API uses the existing `SUPABASE_URL` and either `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY` settings; configure them only in the backend environment.
 
 `POST /rfp-intake` accepts one PDF (maximum 25 MB), writes the artifact to repository `data/raw/rfp-intake/`, creates an `analizando` ticket, and returns `202` with `ticket_id`. FastAPI `BackgroundTasks` then invokes the dedicated LangGraph under `data/pipelines/rfp_intake/`. `GET /rfp-intake` lists recent tickets and `GET /rfp-intake/{ticket_id}` returns status, metadata, department sections, processing error, and synthesizer handoff. All routes require JWT authentication.
 
