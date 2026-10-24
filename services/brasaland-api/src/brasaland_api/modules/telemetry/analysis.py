@@ -11,6 +11,7 @@ import httpx
 import pandas as pd
 
 from brasaland_api.core.config import Settings, get_settings
+from brasaland_api.core.supabase_auth import supabase_auth_headers
 from brasaland_api.modules.telemetry.allowlists import EVENT_PROPERTY_CONTRACTS
 
 CACHE_TTL = timedelta(seconds=60)
@@ -50,15 +51,15 @@ class SupabaseTelemetryReader:
         start_date: datetime,
         end_date: datetime,
     ) -> list[dict[str, Any]]:
-        if not self.settings.supabase_url or not self.settings.supabase_service_role_key:
+        auth_headers = supabase_auth_headers(self.settings)
+        if not self.settings.supabase_url or auth_headers is None:
             raise TelemetryAnalysisError("Telemetry storage is not configured")
         if not event_types:
             return []
 
         url = f"{self.settings.supabase_url.rstrip('/')}/rest/v1/telemetry_events"
         headers = {
-            "apikey": self.settings.supabase_service_role_key.get_secret_value(),
-            "Authorization": f"Bearer {self.settings.supabase_service_role_key.get_secret_value()}",
+            **auth_headers,
             "Range-Unit": "items",
             "Prefer": "count=none",
         }

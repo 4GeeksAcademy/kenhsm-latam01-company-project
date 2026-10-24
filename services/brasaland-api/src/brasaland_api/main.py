@@ -38,11 +38,12 @@ from services.reporting.router import router as reporting_router
 settings = get_settings()
 if settings.supabase_url:
     os.environ.setdefault("SUPABASE_URL", settings.supabase_url)
-if settings.supabase_service_role_key:
-    os.environ.setdefault(
-        "SUPABASE_SERVICE_ROLE_KEY",
-        settings.supabase_service_role_key.get_secret_value(),
-    )
+for variable_name, secret in (
+    ("SUPABASE_SECRET_KEY", settings.supabase_secret_key),
+    ("SUPABASE_SERVICE_ROLE_KEY", settings.supabase_service_role_key),
+):
+    if secret:
+        os.environ.setdefault(variable_name, secret.get_secret_value())
 
 app = FastAPI(title="Brasaland API", version="0.1.0")
 timing_logger = logging.getLogger("api.timing")

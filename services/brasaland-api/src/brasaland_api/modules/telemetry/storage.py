@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from brasaland_api.core.config import Settings, get_settings
+from brasaland_api.core.supabase_auth import supabase_auth_headers
 from brasaland_api.modules.telemetry.schemas import TelemetryEvent
 
 VALUE_PROPERTIES = {
@@ -64,14 +65,14 @@ def event_level(event: TelemetryEvent) -> str:
 
 def insert_events(events: list[TelemetryEvent], *, settings: Settings | None = None) -> int:
     settings = settings or get_settings()
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    auth_headers = supabase_auth_headers(settings)
+    if not settings.supabase_url or auth_headers is None:
         raise SupabaseStorageError("Supabase storage is not configured")
 
     rows = [event_to_row(event) for event in events]
     url = f"{settings.supabase_url.rstrip('/')}/rest/v1/telemetry_events"
     headers = {
-        "apikey": settings.supabase_service_role_key.get_secret_value(),
-        "Authorization": f"Bearer {settings.supabase_service_role_key.get_secret_value()}",
+        **auth_headers,
         "Content-Type": "application/json",
         "Prefer": "return=minimal",
     }

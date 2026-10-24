@@ -146,7 +146,8 @@ def test_supabase_reader_filters_event_type_and_utc_half_open_window():
     client = httpx.Client(transport=httpx.MockTransport(respond))
     settings = Settings(
         supabase_url="https://example.supabase.co",
-        supabase_service_role_key=SecretStr("test-only-key"),
+        supabase_secret_key=SecretStr("test-secret-key"),
+        supabase_service_role_key=None,
         _env_file=None,
     )
     reader = SupabaseTelemetryReader(settings, client)
@@ -166,7 +167,8 @@ def test_supabase_reader_filters_event_type_and_utc_half_open_window():
     assert "timestamp.lt.2026-10-09T00:00:00Z" in query["and"][0]
     assert query["event_type"][0] == "in.(auth_login_failed,auth_login_succeeded)"
     assert query["select"][0] == "timestamp,event_type,level,value,tags"
-    assert requests[0].headers["authorization"] == "Bearer test-only-key"
+    assert requests[0].headers["apikey"] == "test-secret-key"
+    assert "authorization" not in requests[0].headers
 
 
 def test_report_cache_reuses_same_window_for_sixty_seconds(monkeypatch):
