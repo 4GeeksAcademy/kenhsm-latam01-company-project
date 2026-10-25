@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 from brasaland_api.core.deps import get_current_user
+from brasaland_api.modules.users.models import UserRole
 from brasaland_api.modules.agent import router as agent_router
 from brasaland_api.main import app
 from brasaland_api.modules.agent.incident_tools import IncidentLookupInput, lookup_incident
@@ -29,7 +32,8 @@ def test_incidents_manager_requires_api_authentication():
 
 
 def test_incidents_manager_create_get_and_lifecycle_transition():
-    app.dependency_overrides[get_current_user] = lambda: object()
+    manager = SimpleNamespace(id="manager-1", role=UserRole.MANAGER)
+    app.dependency_overrides[get_current_user] = lambda: manager
     client = TestClient(app)
     try:
         created = client.post(
@@ -58,6 +62,39 @@ def test_incidents_manager_create_get_and_lifecycle_transition():
         assert transitioned.json()["status"] == "in_progress"
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_basic_user_cannot_mutate_incidents_or_invoke_agent_tools():
+    user = SimpleNamespace(id="user-1", role=UserRole.USER)
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[agent_router.get_optional_current_user] = lambda: user
+    client = TestClient(app)
+    incident_payload = {
+        "title": "Refrigerador sin temperatura estable",
+        "description": "El refrigerador de cocina no mantiene temperatura estable.",
+        "category": "equipment_failure",
+        "status": "open",
+        "origin": "branch",
+        "branch": "medellin_centro",
+    }
+
+    try:
+        created = client.post("/api/incidents", json=incident_payload)
+        transitioned = client.patch("/api/incidents/incident-1/status", json={"status": "resolved"})
+        tool_call = client.post(
+            "/agent/query",
+            json={
+                "question": "Actualiza una incidencia",
+                "tool_action": "update_incident_status",
+                "tool_arguments": {"incident_id": "incident-1", "status": "resolved"},
+            },
+        )
+
+        assert created.status_code == transitioned.status_code == tool_call.status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(agent_router.get_optional_current_user, None)
+
 
 def test_typed_agent_lookup_reads_existing_incidents_by_id_and_source_key():
     incident = services.create_incident(

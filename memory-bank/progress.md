@@ -23,6 +23,8 @@
 19. Implemented authenticated RFP SSE notifications emitted only after valid classification and metadata persistence, plus fetch-based backoffice consumption with progressive reconnection, paginated `created_at` recovery, and `ticket_id` deduplication. The focused `test_rfp_intake.py` suite passes (22 tests), and the backoffice module passes Node syntax validation. Manual network-interruption verification is documented in `uis/backoffice/README.md`; production multi-worker fan-out still needs a shared broker.
 20. Added authenticated bidirectional WebSocket chat for the existing `manager_support` graph. `ChatSession` and message history persist in SQLite, a per-session in-memory pub/sub channel fans out producer events, async model streaming is cancellable, and reconnects receive a sequenced `session_snapshot`. The backoffice chat supports token rendering, interruption/redirection, and exponential reconnect. Focused chat/graph/guardrail tests pass (29); production multi-worker fan-out and manual browser verification remain deployment checks.
 
+21. Completed a source-level OWASP Top 10 2021 and NIST AI RMF assessment at `docs/brasaland/owasp-top10-audit.md`. Hardened Docker runtime users, Compose port exposure, JWT secret configuration, and incident/agent-tool role authorization. Supplier-order demo requests now require a separate authenticated manager/admin approval. Focused security, access-control, approval, and prompt-injection tests pass; dependency scans report no known vulnerabilities. Production SSH/firewall/TLS and per-location authorization remain deployment gates.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.

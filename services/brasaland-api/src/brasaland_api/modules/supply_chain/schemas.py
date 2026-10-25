@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -22,3 +23,7 @@ class PurchaseOrderCreate(BaseModel):
 class PurchaseOrderOut(PurchaseOrderCreate):
     id: str
     created_at: datetime
+    created_by: str
+    status: Literal["pending_approval", "approved"]
+    approved_by: str | None
+    approved_at: datetime | None

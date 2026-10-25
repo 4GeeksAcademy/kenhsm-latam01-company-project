@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from brasaland_api.core.deps import get_current_user
+from brasaland_api.core.deps import get_current_user, require_manager_or_admin
 from brasaland_api.modules.incidents import services
 from brasaland_api.modules.incidents.schemas import IncidentCreate, IncidentOut, IncidentStatusUpdate, IncidentSummary
 from brasaland_shared.incidents import validate_incident_payload
@@ -14,7 +14,12 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=IncidentOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=IncidentOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_manager_or_admin)],
+)
 def create(payload: IncidentCreate) -> IncidentOut:
     errors = validate_incident_payload(payload.model_dump())
     if errors:
@@ -40,7 +45,11 @@ def get_one(incident_id: str) -> IncidentOut:
     return record
 
 
-@router.patch("/{incident_id}/status", response_model=IncidentOut)
+@router.patch(
+    "/{incident_id}/status",
+    response_model=IncidentOut,
+    dependencies=[Depends(require_manager_or_admin)],
+)
 def change_status(incident_id: str, payload: IncidentStatusUpdate) -> IncidentOut:
     if payload.status not in ("open", "in_progress", "resolved", "discarded"):
         raise HTTPException(status_code=400, detail={"message": "Estado no permitido.", "fields": {"status": "El estado no está permitido."}})

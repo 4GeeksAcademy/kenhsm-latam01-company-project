@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from brasaland_api.modules.agent.graph import query_agent
 from brasaland_api.modules.agent.memory import AgentMemoryStore
 from brasaland_api.modules.agent.guardrails import metrics as guardrail_metrics
-from brasaland_api.core.deps import get_current_user
+from brasaland_api.core.deps import get_current_user, require_manager_or_admin
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 optional_bearer = HTTPBearer(auto_error=False)
@@ -36,6 +36,12 @@ class AgentQueryResponse(BaseModel):
     memory_decision: dict[str, Any] | None = None
 
 
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
+):
+    return get_current_user(credentials.credentials) if credentials is not None else None
+
+
 @router.get("/memory")
 def read_agent_memory(current_user=Depends(get_current_user)) -> list[dict[str, Any]]:
     return AgentMemoryStore().read_memories(current_user.id)
@@ -54,18 +60,17 @@ def read_guardrail_summary(current_user=Depends(get_current_user)) -> dict[str, 
 @router.post("/query", response_model=AgentQueryResponse)
 async def ask_agent(
     payload: AgentQueryRequest,
-    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
+    current_user=Depends(get_optional_current_user),
 ) -> AgentQueryResponse:
-    actor_id = None
     if payload.tool_action:
-        if credentials is None:
+        if current_user is None:
             raise HTTPException(
                 status_code=401,
                 detail="Se requiere autenticación para ejecutar herramientas del agente.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-    if credentials is not None:
-        actor_id = get_current_user(credentials.credentials).id
+        require_manager_or_admin(current_user)
+    actor_id = current_user.id if current_user is not None else None
     try:
         result = await query_agent(
             payload.question,

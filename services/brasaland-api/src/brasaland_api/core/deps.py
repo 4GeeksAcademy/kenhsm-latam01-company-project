@@ -37,3 +37,9 @@ def require_admin(current_user: UserRecord = Depends(get_current_user)) -> UserR
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Requiere rol de administrador.")
     return current_user
+
+
+def require_manager_or_admin(current_user: UserRecord = Depends(get_current_user)) -> UserRecord:
+    if current_user.role not in {"admin", "manager"}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Requiere rol de gerente.")
+    return current_user

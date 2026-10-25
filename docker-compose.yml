@@ -7,8 +7,8 @@ services:
       BRASALAND_API_URL: ${BRASALAND_API_URL}
     command: ["sh", "/app/uis/start.sh"]
     ports:
-      - "3000:3000"
-      - "3001:3001"
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3001"
     volumes:
       - ./uis:/app/uis
       - interfaces_website_node_modules:/app/uis/website/node_modules
@@ -26,10 +26,12 @@ services:
     env_file:
       - .env
     command: ["uvicorn", "brasaland_api.main:app", "--app-dir", "src", "--host", "0.0.0.0", "--port", "8010", "--reload"]
+    user: "10001:10001"
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
     volumes:
       - ./services/brasaland-api:/app/services/brasaland-api
+      - brasaland_backend_state:/var/lib/brasaland
     depends_on:
       - qdrant
     networks:
@@ -38,9 +40,6 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.14.1
     container_name: brasaland-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
     networks:
@@ -54,3 +53,4 @@ volumes:
   interfaces_website_node_modules:
   interfaces_backoffice_node_modules:
   qdrant_storage:
+  brasaland_backend_state:
