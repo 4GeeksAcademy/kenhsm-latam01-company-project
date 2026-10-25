@@ -87,7 +87,7 @@
     <div class="container">
       <div class="panel">
         <h1>Asistente de conocimiento Brasaland</h1>
-        <p class="subtitle">Consulta la base de conocimiento del programa de lealtad, desperdicio, alérgenos y proveedores.</p>
+        <p class="subtitle">Consulta la base de conocimiento del programa de lealtad, desperdicio, alérgenos y proveedores. <a href="./manager-chat.html">Iniciar sesión</a></p>
 
         <form id="knowledge-form">
           <label for="question">Pregunta</label>
@@ -122,9 +122,16 @@
         answer.textContent = '';
 
         try {
+          const accessToken = localStorage.getItem('brasaland_access_token');
+          if (!accessToken) {
+            throw new Error('Inicia sesión para consultar la base de conocimiento.');
+          }
           const response = await fetch('http://127.0.0.1:8010/knowledge/query', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
             body: JSON.stringify({ question }),
           });
 

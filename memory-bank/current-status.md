@@ -4,6 +4,12 @@
 
 The OWASP Top 10 2021 / NIST AI RMF assessment is documented in `docs/brasaland/owasp-top10-audit.md`. The API and UI images now run non-root; Compose binds UI/API ports to loopback and does not publish Qdrant; backend state is stored under `/var/lib/brasaland`; JWT signing requires a configured key of at least 32 characters. Incident mutations and agent tools require `manager` or `admin`; supplier-order demo requests enter `pending_approval` and require a different manager/admin identity to approve. Focused prompt-injection and authorization tests pass. Production host SSH/root-login, firewall, TLS, shared security alerts, and per-location read authorization remain unverified or pending; do not claim production sign-off until those are addressed.
 
+## NIST Secure AI Practices (2026-10-25)
+
+The NIST CSF 2.0 assessment with all six functions is in `docs/brasaland/nist-practicas-seguras-ia.md`; it complements the OWASP report and maps Brasaland's AI inventory, third-party controls, model-input paths, Ley 1581/FIPA obligations, response/recovery steps, and prioritized gaps. `/agent/query` is limited by IP, WebSocket turns by authenticated manager, both sanitize/limit input, and `query_agent` emits structured decision/action logs without prompt or response content. Limits are process-local and require shared storage/monitoring for multi-worker production. `.env.example` is present with empty secret entries; `.env` remains ignored. Confirm actual vendor retention/region/DPA, host controls, and tested backups before production approval.
+
+The standalone `/knowledge/query` endpoint now requires `manager`/`admin`, shares the AI query quota, sanitizes input and enforces a 3000-character limit. The backoffice knowledge page forwards its existing JWT. The internal `data/pipelines/rag.py` implementation could not be inspected because it is excluded by workspace policy; prompt-injection isolation for that generation path remains unverified and must be resolved before production.
+
 ## Date
 
 2026-09-27

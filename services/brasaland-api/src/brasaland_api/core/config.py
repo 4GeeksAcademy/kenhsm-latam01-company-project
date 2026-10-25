@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     password_reset_token_expire_minutes: int = Field(default=30, ge=15, le=60)
+    agent_query_limit_per_minute: int = Field(default=20, ge=1, le=1000)
 
     tinydb_path: str = "data/db.json"
     supabase_url: str | None = None
@@ -25,15 +26,12 @@ class Settings(BaseSettings):
     rfp_checkpoint_path: str = "data/state/rfp_approval_checkpoints.sqlite3"
     telemetry_endpoint: str = "http://localhost:8000/telemetry/events"
 
-    # Comma-separated allow-list of origins permitted to call this API from a browser.
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500"
     resend_api_key: str = ""
     resend_from_email: str = "onboarding@resend.dev"
     frontend_base_url: str = "http://localhost:3000"
 
     # Comma-separated allow-list of origins permitted to call this API from a browser.
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
-
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5500,http://127.0.0.1:5500"
 
     @property
     def cors_origin_list(self) -> list[str]:

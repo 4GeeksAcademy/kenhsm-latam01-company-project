@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import logging
 import os
 import re
 import uuid
@@ -29,6 +31,7 @@ from brasaland_api.modules.agent.guardrails import (
     manager_redirect_for,
     metrics as guardrail_metrics,
     sanitize_untrusted_text,
+    sanitize_user_input,
     validate_model_output,
 )
 from brasaland_api.modules.agent.incident_tools import IncidentLookupInput, lookup_incident as lookup_incident_record
@@ -59,6 +62,7 @@ class AgentState(TypedDict):
 
 
 INCIDENT_LOOKUP_TIMEOUT_SECONDS = 4.0
+logger = logging.getLogger("brasaland_api.agent.trace")
 _INCIDENT_REFERENCE = re.compile(
     r"\b(?:ticket|incidencia|incidente|incident)\s*(?:n(?:ro|um(?:ero)?)?\.?\s*)?(?:#\s*)?"
     r"(BRS-\d{6}|incident-[\w-]+|[0-9a-fA-F-]{8,}|\d+)\b",
@@ -80,7 +84,7 @@ def _append_trace(state: AgentState, node: str, **payload: Any) -> None:
 
 
 def receive_question(state: AgentState) -> AgentState:
-    question = (state.get("question") or "").strip()
+    question = sanitize_user_input(state.get("question"))
     state["question"] = question
     state["actor_id"] = state.get("actor_id")
     state["tool_action"] = state.get("tool_action")
@@ -986,6 +990,8 @@ async def query_agent(
 ) -> dict[str, Any]:
     if thread_id is None:
         thread_id = uuid.uuid4().hex
+    request_id = uuid.uuid4().hex
+    actor_ref = hashlib.sha256(actor_id.encode()).hexdigest()[:16] if actor_id else "anonymous"
 
     graph = build_agent_graph()
     state = {
@@ -1006,9 +1012,29 @@ async def query_agent(
         "guardrail_request_kind": "business",
         "session_id": actor_id or "anonymous",
     }
-    result = await graph.ainvoke(state, config={"configurable": {"thread_id": thread_id}})
+    try:
+        result = await graph.ainvoke(state, config={"configurable": {"thread_id": thread_id}})
+    except Exception as error:
+        logger.error(
+            "agent_run_failed request_id=%s actor_ref=%s error_type=%s",
+            request_id,
+            actor_ref,
+            type(error).__name__,
+        )
+        raise
     if not result.get("answer"):
         result["answer"] = "No pude producir una respuesta fiable con el contexto disponible."
+    logger.info(
+        "agent_run_completed request_id=%s actor_ref=%s requested_action=%s decision=%s category=%s route=%s nodes=%s error=%s",
+        request_id,
+        actor_ref,
+        tool_action or "none",
+        result.get("guardrail_action", "unknown"),
+        result.get("guardrail_category", "none") or "none",
+        result.get("source_route", "none") or "none",
+        ",".join(step.get("node", "unknown") for step in result.get("trace", [])),
+        result.get("error") or "none",
+    )
     return result
 
 
