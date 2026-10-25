@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -25,7 +26,7 @@ from data.pipelines.rfp_intake.runner import run_rfp_intake
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/rfp-intake", tags=["rfp-intake"], dependencies=[Depends(get_current_user)])
 REPOSITORY_ROOT = Path(__file__).resolve().parents[6]
-RAW_RFP_DIRECTORY = REPOSITORY_ROOT / "data" / "raw" / "rfp-intake"
+RAW_RFP_DIRECTORY = Path(os.getenv("RFP_UPLOAD_DIRECTORY", str(REPOSITORY_ROOT / "data" / "raw" / "rfp-intake")))
 MAX_PDF_BYTES = 25 * 1024 * 1024
 
 

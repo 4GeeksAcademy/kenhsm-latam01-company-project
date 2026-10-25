@@ -1,5 +1,9 @@
 # Current Status
 
+## Security Audit Decision (2026-10-25)
+
+The OWASP Top 10 2021 / NIST AI RMF assessment is documented in `docs/brasaland/owasp-top10-audit.md`. The API and UI images now run non-root; Compose binds UI/API ports to loopback and does not publish Qdrant; backend state is stored under `/var/lib/brasaland`; JWT signing requires a configured key of at least 32 characters. Incident mutations and agent tools require `manager` or `admin`; supplier-order demo requests enter `pending_approval` and require a different manager/admin identity to approve. Focused prompt-injection and authorization tests pass. Production host SSH/root-login, firewall, TLS, shared security alerts, and per-location read authorization remain unverified or pending; do not claim production sign-off until those are addressed.
+
 ## Date
 
 2026-09-27
