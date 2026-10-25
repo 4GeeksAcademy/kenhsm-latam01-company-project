@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from brasaland_api.core.rate_limit import FixedWindowRateLimiter
 from brasaland_api.main import app
 from brasaland_api.modules.agent import chat
 from brasaland_api.modules.agent import graph as agent_graph
@@ -142,6 +143,40 @@ def test_websocket_rejects_invalid_jwt(chat_client):
         ):
             pass
     assert authenticated == ["invalid"]
+
+
+def test_websocket_sanitizes_input_and_rate_limits_model_turns(chat_client, monkeypatch):
+    client, _ = chat_client
+    questions = []
+
+    async def fake_stream_agent(question, **kwargs):
+        questions.append(question)
+        yield "custom", {"token": "Respuesta segura."}
+        yield "values", {"answer": "Respuesta segura."}
+
+    monkeypatch.setattr(chat, "agent_query_rate_limiter", FixedWindowRateLimiter(max_requests=1))
+    monkeypatch.setattr(chat, "stream_agent", fake_stream_agent)
+    with client.websocket_connect(
+        "/agent/chat/chat-rate-limit?token=valid-test-token&location_id=COL-01"
+    ) as websocket:
+        websocket.receive_json()
+        websocket.send_json({
+            "event": "user_message",
+            "data": {"session_id": "chat-rate-limit", "text": "¿Qué revisar\x00 antes de abrir?"},
+        })
+        first_turn = []
+        while not any(event["event"] == "generation_completed" for event in first_turn):
+            first_turn.append(websocket.receive_json())
+
+        websocket.send_json({
+            "event": "user_message",
+            "data": {"session_id": "chat-rate-limit", "text": "Otra consulta"},
+        })
+        limited = websocket.receive_json()
+
+    assert questions == ["¿Qué revisar antes de abrir?"]
+    assert limited["event"] == "chat_error"
+    assert "Límite de consultas" in limited["data"]["detail"]
 
 
 def test_session_event_bus_fans_out_without_duplicate_producers():

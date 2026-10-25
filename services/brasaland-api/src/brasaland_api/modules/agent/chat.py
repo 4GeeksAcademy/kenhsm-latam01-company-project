@@ -11,7 +11,9 @@ from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from brasaland_api.core.rate_limit import agent_query_rate_limiter
 from brasaland_api.core.deps import get_current_user
+from brasaland_api.modules.agent.guardrails import sanitize_user_input
 from brasaland_api.modules.agent.graph import stream_agent
 
 router = APIRouter(tags=["manager support chat"])
@@ -288,13 +290,28 @@ async def _produce_generation(
             runtime.generations.pop(session_id, None)
 
 
-async def _start_turn(session: dict[str, Any], user_id: str, text: str) -> None:
+async def _start_turn(
+    session: dict[str, Any], user_id: str, text: str, *, rate_checked: bool = False
+) -> None:
     session_id = session["session_id"]
+    text = sanitize_user_input(text)
+    if not text:
+        await _publish(session_id, "chat_error", {"detail": "El mensaje no contiene texto válido."})
+        return
     async with runtime.lock_for(session_id):
         active = runtime.generations.get(session_id)
         if active and not active.done():
             await _publish(session_id, "chat_error", {"detail": "Envía interrupt_requested para redirigir la respuesta."})
             return
+        if not rate_checked:
+            retry_after = agent_query_rate_limiter.check(f"user:{user_id}")
+            if retry_after is not None:
+                await _publish(
+                    session_id,
+                    "chat_error",
+                    {"detail": f"Límite de consultas alcanzado. Reintenta en {retry_after} segundos."},
+                )
+                return
         store.update_session_status(session_id, "active")
         user_message_id = store.create_message(session_id, "user", text, "completed")
         await _publish(
@@ -319,6 +336,18 @@ async def _start_turn(session: dict[str, Any], user_id: str, text: str) -> None:
 
 async def _interrupt_and_redirect(session: dict[str, Any], user_id: str, new_input: str) -> None:
     session_id = session["session_id"]
+    new_input = sanitize_user_input(new_input)
+    if not new_input:
+        await _publish(session_id, "chat_error", {"detail": "El mensaje no contiene texto válido."})
+        return
+    retry_after = agent_query_rate_limiter.check(f"user:{user_id}")
+    if retry_after is not None:
+        await _publish(
+            session_id,
+            "chat_error",
+            {"detail": f"Límite de consultas alcanzado. Reintenta en {retry_after} segundos."},
+        )
+        return
     await _publish(session_id, "interrupt_requested", {"new_input": new_input})
     async with runtime.lock_for(session_id):
         active = runtime.generations.get(session_id)
@@ -329,7 +358,7 @@ async def _interrupt_and_redirect(session: dict[str, Any], user_id: str, new_inp
             await active
         except asyncio.CancelledError:
             pass
-    await _start_turn(session, user_id, new_input)
+    await _start_turn(session, user_id, new_input, rate_checked=True)
 
 
 async def _send_events(websocket: WebSocket, queue: asyncio.Queue[dict[str, Any]]) -> None:

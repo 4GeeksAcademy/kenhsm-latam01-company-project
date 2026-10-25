@@ -11,13 +11,16 @@ from brasaland_api.modules.agent.graph import query_agent
 from brasaland_api.modules.agent.memory import AgentMemoryStore
 from brasaland_api.modules.agent.guardrails import metrics as guardrail_metrics
 from brasaland_api.core.deps import get_current_user, require_manager_or_admin
+from brasaland_api.core.config import get_settings
+from brasaland_api.core.rate_limit import agent_query_rate_limiter
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 optional_bearer = HTTPBearer(auto_error=False)
+agent_query_limiter = agent_query_rate_limiter
 
 
 class AgentQueryRequest(BaseModel):
-    question: str = Field(..., min_length=1, description="Pregunta en lenguaje natural para la base de conocimiento")
+    question: str = Field(..., min_length=1, max_length=3000, description="Pregunta en lenguaje natural para la base de conocimiento")
     tool_action: Literal[
         "create_incident",
         "get_incident",
@@ -57,7 +60,7 @@ def read_guardrail_summary(current_user=Depends(get_current_user)) -> dict[str, 
     return guardrail_metrics.summary(current_user.id)
 
 
-@router.post("/query", response_model=AgentQueryResponse)
+@router.post("/query", response_model=AgentQueryResponse, dependencies=[Depends(agent_query_limiter)])
 async def ask_agent(
     payload: AgentQueryRequest,
     current_user=Depends(get_optional_current_user),
