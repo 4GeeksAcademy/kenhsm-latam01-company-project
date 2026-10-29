@@ -76,4 +76,5 @@ NIST organiza la gestión de ciberseguridad en seis funciones: **Govern** (polí
 - [ ] El informe NIST cubre las seis funciones con al menos una acción concreta por función.
 - [ ] El informe hace referencia explícita al marco regulatorio de tu BRIEFING.md, no a normativa genérica.
 
----
+---HASTA AQUI
+--- ENTREGA LISTA
