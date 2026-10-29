@@ -22,6 +22,10 @@ This repository is the **starter template** for transversal projects. You will w
 
 This workspace is configured for Brasaland. The canonical company/domain context and consolidated project requirements live in [`docs/brasaland/contexto-maestro.md`](./docs/brasaland/contexto-maestro.md) and [`docs/brasaland/especificaciones-maestro.md`](./docs/brasaland/especificaciones-maestro.md). The root `CONTEXT.md` is retained as a protected legacy reference; do not treat it as the canonical source for new work.
 
+## Background tasks
+
+Docker Compose runs Redis as the Celery broker, an independent `rfp-worker`, and Flower at `http://127.0.0.1:5555`. Start the stack with `docker compose up --build`; stop it with `docker compose down`. The RFP draft endpoint returns a `task_id`, and authenticated clients can poll `/tasks/{task_id}`. Apply `services/brasaland-api/migrations/005_create_task_dead_letters.sql` before production use.
+
 ---
 
 ## Repository structure

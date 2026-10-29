@@ -10,6 +10,7 @@ FastAPI backend implementing authentication and route protection for the Brasala
 - **python-jose** — JWT signing/decoding.
 - **libpass[bcrypt]** — password hashing (drop-in fork of `passlib`, imported as `from passlib.hash import bcrypt`).
 - **uv** — dependency and project management.
+- **Celery + Redis** — durable RFP draft queue with a separate worker process; Flower monitors local development.
 
 ## Structure
 
@@ -80,6 +81,7 @@ The manager-support graph automatically routes incident references (for example,
 | `SUPABASE_URL` | Supabase project URL used by the API's PostgREST integrations. |
 | `SUPABASE_SECRET_KEY` | Current server-side Supabase secret API key (`sb_secret_...`); used as `apikey` and never exposed to the browser or committed. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Legacy JWT-style service role key; supported for compatibility and used as both `apikey` and bearer token. Keep it server-side and never commit it. |
+| `REDIS_URL` | Celery broker and result backend URL (default `redis://localhost:6379/0`). In Docker Compose, the API, worker, and Flower use `redis://redis:6379/0`. |
 | `RFP_CHECKPOINT_PATH` | Durable SQLite checkpoint file for independently resumable RFP approval branches (default `data/state/rfp_approval_checkpoints.sqlite3`). |
 | `CORS_ORIGINS` | Comma-separated allow-list of browser origins permitted to call this API (default `http://localhost:3000,http://127.0.0.1:3000`, for the Next.js dev frontend). |
 
@@ -109,6 +111,10 @@ Apply `migrations/003_create_rfp_intake.sql` and `migrations/004_create_rfp_appr
 The PDF is converted with MarkItDown before classification. Readability uses `py-readability-metrics` when tokenizer resources are available and a deterministic local estimate otherwise. A failed background run records `processing_error` and does not falsely complete the ticket. The in-process task is not a durable queue, so production deployments requiring restart recovery should replace dispatch with a durable worker while retaining this API and graph contract.
 
 `POST /rfp-intake/{ticket_id}/generate-draft` runs Part 2, then starts an independent checkpointed approval branch for each active department and for Mariana Restrepo when annual value exceeds USD 50,000. `POST /rfp-intake/{ticket_id}/approvals/{approval_key}` accepts `approve`, `reject`, or `request_changes`; the API resumes only that branch and verifies the authenticated TinyDB profile name against the named approver. A change request regenerates only the selected department and is bounded to three cycles; a rejection returns the ticket to `needs_human_review`, from which Marketing can explicitly start a new Part 2 execution with the same endpoint.
+
+Part 2 is enqueued as `brasaland.generate_rfp_draft`; the API responds `202` with `task_id`, and authenticated `GET /tasks/{task_id}` exposes `pending`, `started`, `success`, or `failure` plus the result. The separate worker retries failures three times with exponential delays (2, 4, and 8 seconds); after retry exhaustion it records `task_id`, final attempt, error, and timestamp in `public.task_dead_letters` and moves the ticket to `needs_human_review`. Apply `migrations/005_create_task_dead_letters.sql` before enabling DLQ persistence.
+
+For local development, `docker compose up --build` starts the API, Redis, worker, and Flower at `http://127.0.0.1:5555`; `docker compose down` stops them. Redis is bound to loopback on port 6379, uses AOF persistence and `noeviction`, and is shared by the API and worker through `REDIS_URL`. Task messages contain only the RFP ticket ID. Worker task timeout is 15 minutes; late acknowledgements allow a task to be redelivered if the worker exits before completing it.
 
 Set `RFP_CHECKPOINT_PATH` to a durable filesystem path for `SqliteSaver` (default `data/state/rfp_approval_checkpoints.sqlite3`). The SQLite file must live on a persistent volume in deployment. Branch `thread_id` values include ticket, approval key, and revision. Operations/Procurement can enter structured per-event terms and every department can enter setup lead time; fixed arbitration checks those values and structured compliance violations without inferring figures from free text. `GET /rfp-intake/{ticket_id}` returns approval state, arbitration conflicts, ordered execution events, and the final document when available. `GET /rfp-intake/{ticket_id}/final-document` returns 404 until all required sign-offs are approved. The deterministic synthesizer stores only approved customer-facing sections, not internal evaluation/cost fields.
 

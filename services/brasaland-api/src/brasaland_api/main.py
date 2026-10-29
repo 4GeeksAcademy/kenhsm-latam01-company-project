@@ -31,6 +31,7 @@ from brasaland_api.modules.operations.router import router as operations_router
 from brasaland_api.modules.profiles.router import router as profiles_router
 from brasaland_api.modules.supply_chain.router import router as supply_chain_router
 from brasaland_api.modules.telemetry.router import router as telemetry_router
+from brasaland_api.modules.tasks import router as tasks_router
 from brasaland_api.modules.users.router import router as users_router
 from brasaland_api.modules.incidents.router import router as incidents_router
 from brasaland_api.modules.rfp_intake.router import router as rfp_intake_router
@@ -112,6 +113,7 @@ app.include_router(supply_chain_router)
 app.include_router(inventory_router)
 app.include_router(hr_router)
 app.include_router(telemetry_router)
+app.include_router(tasks_router)
 app.include_router(knowledge_router)
 app.include_router(reporting_router)
 
