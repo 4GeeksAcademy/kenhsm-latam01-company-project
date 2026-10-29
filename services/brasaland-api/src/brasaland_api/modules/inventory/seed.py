@@ -9,7 +9,7 @@ from __future__ import annotations
 from sqlmodel import Session
 from datetime import datetime
 
-from brasaland_api.core.db import get_sqlmodel_engine
+from brasaland_api.core.db import get_sqlmodel_engine, init_inventory_db
 from brasaland_api.modules.inventory.models import (
     Ingredient,
     IngredientEntry,
@@ -19,6 +19,10 @@ from brasaland_api.modules.inventory.models import (
 
 def seed_inventory():
     """Populate inventory tables with initial data."""
+    # Initialize database schema first
+    init_inventory_db()
+    print("✓ Database schema initialized")
+    
     engine = get_sqlmodel_engine()
     
     with Session(engine) as session:
