@@ -30,7 +30,11 @@
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.
-2. Definir scripts de validacion por area (lint, type-check, test, build) para estandarizar verificacion pre-PR.
-3. Expandir catalogo de skills de agente para tareas recurrentes (por ejemplo, decision log updater, release notes generator).
-4. Conectar progresivamente las UIs con servicios reales y datos operativos.
-5. Reemplazar los stubs en memoria de `operations`, `supply_chain` y `hr` con persistencia real (Supabase/PostgreSQL) y actualizar el frontend para enviar el JWT.
+2. **COMPLETADO:** Implementado Directorio de Proveedores con FastAPI + TinyDB + Pydantic, seeder con 15 proveedores iniciales, 17 tests de cobertura completa, y interfaz backoffice responsiva.
+3. Definir scripts de validacion por area (lint, type-check, test, build) para estandarizar verificacion pre-PR.
+4. Expandir catalogo de skills de agente para tareas recurrentes (por ejemplo, decision log updater, release notes generator).
+5. Conectar progresivamente las UIs con servicios reales y datos operativos.
+6. Reemplazar los stubs en memoria de `operations`, `supply_chain` y `hr` con persistencia real (Supabase/PostgreSQL) y actualizar el frontend para enviar el JWT.
+7. Integrar autenticación JWT en endpoints de proveedores.
+8. Migración a PostgreSQL cuando el ORM esté listo.
+
