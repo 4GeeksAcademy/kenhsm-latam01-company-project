@@ -178,4 +178,8 @@ Added the independent `scripts/nightly_export.py` worker and `services/reporting
 
 The documented host-cron schedule is 02:00 UTC daily, via `scripts/nightly_export.crontab`; a deployment operator must install that crontab and supply credentials in the protected cron environment. Focused validation: `uv run pytest tests/test_nightly_export.py -q` passed (6 tests). Live Supabase and two-process database contention remain deployment checks; this environment does not provide the `crontab` command, so the schedule could not be installed here.
 
+## Celery Message Queue (DEV-55)
+
+Added Redis as the Docker Compose broker/result backend, a separate Celery worker for RFP Part 2 draft generation, Flower monitoring, and authenticated `GET /tasks/{task_id}` status polling. The API now queues only the RFP `ticket_id` and returns the Celery `task_id` with HTTP 202. Tasks use late acknowledgement, started-state tracking, a 15-minute timeout, and three exponential retries; exhausted failures are persisted to `public.task_dead_letters` and return the ticket to `needs_human_review`. Apply migration `005_create_task_dead_letters.sql`; local Compose and live Redis/Supabase behavior still require runtime verification.
+
 

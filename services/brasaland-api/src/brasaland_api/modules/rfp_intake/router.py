@@ -15,6 +15,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from brasaland_api.core.deps import get_current_user
+from brasaland_api.celery_app import generate_rfp_draft_task
 from brasaland_api.modules.profiles import services as profile_services
 from brasaland_api.modules.rfp_intake import storage
 from brasaland_api.modules.rfp_intake.events import RFP_TICKET_CREATED, encode_sse_event, rfp_event_broker
@@ -37,6 +38,7 @@ class RFPSubmissionAccepted(BaseModel):
 
 class RFPDraftGenerationAccepted(BaseModel):
     ticket_id: str
+    task_id: str
     status: str
 
 
@@ -190,11 +192,13 @@ def process_rfp_draft_ticket(ticket_id: str) -> None:
         logger.exception("RFP draft generation failed ticket_id=%s", ticket_id)
         try:
             storage.update_ticket(ticket_id, {
+                "status": "generando_borrador",
                 "processing_error": "No se pudo completar la generación/evaluación. El borrador requiere revisión o reintento.",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             })
         except RFPStorageError:
             logger.exception("Could not record RFP draft failure ticket_id=%s", ticket_id)
+        raise
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=RFPSubmissionAccepted)
@@ -351,5 +355,21 @@ def generate_rfp_draft(
     except RFPStorageError as error:
         raise HTTPException(status_code=503, detail="No se pudo iniciar la generación del borrador.") from error
 
-    background_tasks.add_task(process_rfp_draft_ticket, ticket_id)
-    return RFPDraftGenerationAccepted(ticket_id=ticket_id, status="generando_borrador")
+    try:
+        queued_task = generate_rfp_draft_task.apply_async(args=[ticket_id])
+    except Exception as error:
+        logger.exception("Could not enqueue RFP draft ticket_id=%s", ticket_id)
+        try:
+            storage.update_ticket(ticket_id, {
+                "status": ticket["status"],
+                "processing_error": "No se pudo encolar la generación del borrador.",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except RFPStorageError:
+            logger.exception("Could not restore RFP ticket after enqueue failure ticket_id=%s", ticket_id)
+        raise HTTPException(status_code=503, detail="No se pudo encolar la generación del borrador.") from error
+    return RFPDraftGenerationAccepted(
+        ticket_id=ticket_id,
+        task_id=queued_task.id,
+        status="generando_borrador",
+    )

@@ -221,16 +221,16 @@ def test_draft_generation_claims_only_complete_part_one_handoff():
             patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
             patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation", return_value=True) as claim,
             patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Camila Ospina")),
-            patch("brasaland_api.modules.rfp_intake.router.process_rfp_draft_ticket") as process,
+            patch("brasaland_api.modules.rfp_intake.router.generate_rfp_draft_task.apply_async", return_value=SimpleNamespace(id="task-1")) as enqueue,
         ):
             response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 202
-    assert response.json() == {"ticket_id": "ticket-1", "status": "generando_borrador"}
+    assert response.json() == {"ticket_id": "ticket-1", "task_id": "task-1", "status": "generando_borrador"}
     claim.assert_called_once_with("ticket-1", expected_status="analisis_completo")
-    process.assert_called_once_with("ticket-1")
+    enqueue.assert_called_once_with(args=["ticket-1"])
 
 
 def test_draft_generation_reopens_ticket_after_human_review():
@@ -246,15 +246,16 @@ def test_draft_generation_reopens_ticket_after_human_review():
             patch("brasaland_api.modules.rfp_intake.router.storage.get_ticket", return_value=ticket),
             patch("brasaland_api.modules.rfp_intake.router.storage.claim_draft_generation", return_value=True) as claim,
             patch("brasaland_api.modules.rfp_intake.router.profile_services.get_profile_by_user_id", return_value=SimpleNamespace(name="Camila Ospina")),
-            patch("brasaland_api.modules.rfp_intake.router.process_rfp_draft_ticket") as process,
+            patch("brasaland_api.modules.rfp_intake.router.generate_rfp_draft_task.apply_async", return_value=SimpleNamespace(id="task-2")) as enqueue,
         ):
             response = TestClient(app).post("/rfp-intake/ticket-1/generate-draft")
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 202
+    assert response.json()["task_id"] == "task-2"
     claim.assert_called_once_with("ticket-1", expected_status="needs_human_review")
-    process.assert_called_once_with("ticket-1")
+    enqueue.assert_called_once_with(args=["ticket-1"])
 
 
 def test_only_marketing_owner_can_reopen_rejected_rfp_generation():
