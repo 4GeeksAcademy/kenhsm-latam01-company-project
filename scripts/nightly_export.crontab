@@ -1,0 +1,2 @@
+CRON_TZ=UTC
+0 2 * * * cd /path/to/kenhsm-latam01-company-project && .venv/bin/python scripts/nightly_export.py
