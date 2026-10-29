@@ -27,14 +27,17 @@
 22. Added the six-function NIST CSF 2.0 assessment at `docs/brasaland/nist-practicas-seguras-ia.md`, including the AI-system/provider inventory, untrusted model-input map, incident response/recovery actions, and regulatory references. Implemented per-IP `/agent/query` rate limiting, per-manager WebSocket quotas, shared input sanitization, and privacy-minimized structured agent-run logs; focused HTTP, WebSocket, sanitizer, and audit-log tests pass.
 23. Secured the standalone `/knowledge/query` RAG endpoint with manager/admin JWT authorization, shared model rate limits, input sanitization/length validation, and backoffice token forwarding. Its endpoint is now tested for anonymous 401, manager access, sanitized input, and 429. The underlying `data/pipelines/rag.py` remains excluded from source review, so indirect-injection isolation on that legacy generator is explicitly a production gate in the NIST/OWASP reports.
 
+24. Implemented Milestone 5: Backend Inventory Management with dual-database ORM. Created SQLModel Ingredient/IngredientEntry/IngredientExit tables in Supabase PostgreSQL, separated ORM models from Pydantic schemas, implemented 6 endpoints under `/inventory` (products GET/POST, GET by ID, orders inbound/outbound/list), enforced immutable stock calculation (`current_stock = entries - exits`), added HTTP 400 validation to reject negative-stock transactions before persistence, integrated TinyDB user UUIDs without table replication, created comprehensive inventory module README, seeded 6 ingredients with 4 entry/3 exit transactions, and verified app startup with SQLModel registration. Tests with actual Supabase connection remain pending DATABASE_URL configuration. Ready for staging.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.
 2. **COMPLETADO:** Implementado Directorio de Proveedores con FastAPI + TinyDB + Pydantic, seeder con 15 proveedores iniciales, 17 tests de cobertura completa, y interfaz backoffice responsiva.
-3. Definir scripts de validacion por area (lint, type-check, test, build) para estandarizar verificacion pre-PR.
-4. Expandir catalogo de skills de agente para tareas recurrentes (por ejemplo, decision log updater, release notes generator).
-5. Conectar progresivamente las UIs con servicios reales y datos operativos.
-6. Reemplazar los stubs en memoria de `operations`, `supply_chain` y `hr` con persistencia real (Supabase/PostgreSQL) y actualizar el frontend para enviar el JWT.
-7. Integrar autenticación JWT en endpoints de proveedores.
-8. Migración a PostgreSQL cuando el ORM esté listo.
+3. **COMPLETADO (Milestone 5):** Implemented Inventory ORM with dual-database architecture, SQLModel for Supabase, TinyDB user integration, immutable stock, and HTTP 400 negative-stock validation.
+4. Definir scripts de validacion por area (lint, type-check, test, build) para estandarizar verificacion pre-PR.
+5. Expandir catalogo de skills de agente para tareas recurrentes (por ejemplo, decision log updater, release notes generator).
+6. Conectar progresivamente las UIs con servicios reales y datos operativos.
+7. Reemplazar los stubs en memoria de `operations`, `supply_chain` y `hr` con persistencia real (Supabase/PostgreSQL) y actualizar el frontend para enviar el JWT.
+8. Integrar autenticación JWT en endpoints de proveedores.
+9. Migración a PostgreSQL cuando el ORM esté listo.
 

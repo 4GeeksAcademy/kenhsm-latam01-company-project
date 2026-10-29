@@ -21,6 +21,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from brasaland_api.core.config import get_settings
 from brasaland_api.core.schemas import HealthOut
+from brasaland_api.core.db import init_inventory_db
 from brasaland_api.modules.agent.router import router as agent_router
 from brasaland_api.modules.agent.chat import router as agent_chat_router
 from brasaland_api.modules.auth.router import router as auth_router
@@ -33,6 +34,7 @@ from brasaland_api.modules.telemetry.router import router as telemetry_router
 from brasaland_api.modules.users.router import router as users_router
 from brasaland_api.modules.incidents.router import router as incidents_router
 from brasaland_api.modules.rfp_intake.router import router as rfp_intake_router
+from brasaland_api.modules.inventory.router import router as inventory_router
 from services.reporting.router import router as reporting_router
 
 settings = get_settings()
@@ -53,6 +55,16 @@ if not timing_logger.handlers:
     timing_handler.setFormatter(logging.Formatter("%(message)s"))
     timing_logger.addHandler(timing_handler)
 timing_logger.propagate = False
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize inventory database on startup."""
+    try:
+        init_inventory_db()
+        logging.info("Inventory database initialized successfully.")
+    except Exception as e:
+        logging.warning(f"Could not initialize inventory database: {e}")
 
 
 @app.middleware("http")
@@ -97,6 +109,7 @@ app.include_router(operations_router)
 app.include_router(incidents_router)
 app.include_router(rfp_intake_router)
 app.include_router(supply_chain_router)
+app.include_router(inventory_router)
 app.include_router(hr_router)
 app.include_router(telemetry_router)
 app.include_router(knowledge_router)
