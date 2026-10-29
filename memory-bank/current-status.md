@@ -172,4 +172,10 @@ The graph's streaming route uses LangGraph custom events and an async OpenAI str
 
 The internal UI is `uis/backoffice/manager-chat.html`; it reuses the backoffice JWT key, stores the session/location per tab, reconnects with capped exponential backoff, and rehydrates before enabling input. Verification: `uv --project services/brasaland-api run pytest services/brasaland-api/tests/test_agent_chat.py services/brasaland-api/tests/test_agent_guardrails.py tests/pipelines/test_langgraph_agent.py -q` passed (29 tests); `node --check` passed for the chat module and updated navigation. Manual browser network-loss/reconnect verification remains documented in `uis/backoffice/README.md`.
 
+## Nightly Telemetry Export (DEV-53)
+
+Added the independent `scripts/nightly_export.py` worker and `services/reporting/job_runner.py` PostgREST state store. The worker exports the previous UTC day to a non-overwriting CSV snapshot, then invokes the documented `data/pipelines/pipeline.py` CLI. `job_runs` is separate from `reporting.pipeline_runs`; a partial unique index on the `processing` status makes the specified state-based lock atomic across processes. `TARGET_DATE` supports reproducible date overrides. Apply migration `005_create_job_runs.sql` and provide `SUPABASE_URL` plus `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY` before deployment.
+
+The documented host-cron schedule is 02:00 UTC daily, via `scripts/nightly_export.crontab`; a deployment operator must install that crontab and supply credentials in the protected cron environment. Focused validation: `uv run pytest tests/test_nightly_export.py -q` passed (6 tests). Live Supabase and two-process database contention remain deployment checks; this environment does not provide the `crontab` command, so the schedule could not be installed here.
+
 
