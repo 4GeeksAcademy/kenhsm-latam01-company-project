@@ -29,6 +29,10 @@ Added the briefing-aligned data utilities under root `src/` rather than modifyin
 
 Resolved merge-conflict markers in the tracker list/detail routes and centralized the four allowed API statuses and five stages with Spanish display labels. List, detail, update, create, and edit controls now display labels while submitting the exact API values; candidate status/stage fields use matching TypeScript unions. Installed the app's already-declared dependencies so Next.js 16 builds locally. Verification: focused ESLint, TypeScript, production build, and the 5 existing Jest tests pass. `npm install` reported 25 dependency vulnerabilities; no automatic dependency upgrades were applied.
 
+## Hito 4 Agent Infrastructure Audit (2026-11-10)
+
+Verified the Hito 4 requirements against the Brasaland briefing, memory bank, repository instructions, `.agents/rules/`, and `.agents/skills/pr-readiness-check/SKILL.md`. Business/technical context, ordered pre-commit workflow, protected-path policy, always-active monorepo placement rule, and skill inputs/output/acceptance checks were already present. Added `BRIEFING.md` as the first mandatory session read in `AGENTS.md`; product code remains in the existing `uis/website`, `uis/backoffice`, and `services/` areas, with no parallel app tree introduced.
+
 ## Completed
 
 1. Created repository-level agent operating protocol in `AGENTS.md`.
