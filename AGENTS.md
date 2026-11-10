@@ -6,16 +6,17 @@ This file defines how any coding agent must operate in this repository.
 
 Every session must read these files in order before making changes:
 
-1. `README.md`
-2. `docs/brasaland/contexto-maestro.md`
-3. `memory-bank/projectbrief.md`
-4. `memory-bank/techContext.md`
-5. `memory-bank/progress.md`
-6. All files in `.agents/rules/`
+1. `BRIEFING.md`
+2. `README.md`
+3. `docs/brasaland/contexto-maestro.md`
+4. `memory-bank/projectbrief.md`
+5. `memory-bank/techContext.md`
+6. `memory-bank/progress.md`
+7. All files in `.agents/rules/`
 
 If any of these are missing or outdated, stop and update them before coding.
 
-For this Brasaland workspace, `docs/brasaland/contexto-maestro.md` is the canonical company/domain context and `docs/brasaland/especificaciones-maestro.md` is the consolidated requirements register. Root `CONTEXT.md` and `context-company.md` remain protected legacy references; do not edit or remove them.
+For this Brasaland workspace, `BRIEFING.md` is the current assignment's company brief and must be read first. `docs/brasaland/contexto-maestro.md` is the canonical detailed company/domain context and `docs/brasaland/especificaciones-maestro.md` is the consolidated requirements register; use the more specific domain contract if details differ. Root `CONTEXT.md` and `context-company.md` remain protected legacy references; do not edit or remove them.
 
 ## 2) Delivery Flow (No Exceptions)
 

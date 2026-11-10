@@ -37,6 +37,8 @@
 
 28. Fixed Hito 3 Talent Pipeline Tracker UI: removed merge-conflict markers, aligned status/stage enums with the Brasaland briefing, and localized all user-visible status/stage labels across list, detail, create, edit, and update controls. Installed declared app dependencies. ESLint, TypeScript, Next.js production build, and all 5 existing Jest tests pass. Dependency audit during installation reported 25 vulnerabilities; dependency upgrades remain a separate task.
 
+29. Audited Hito 4 agent infrastructure against `SPECS-HITO4-REV.md` and `BRIEFING.md`. Memory files, delivery instructions, monorepo rule, PR-readiness skill, and application path guidance were already in place. Added the current company briefing as the first required read in `AGENTS.md`; no product app or parallel frontend structure was created.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.
