@@ -1,14 +1,15 @@
-# Website UI
+# Sitio público Brasaland
 
-Public-facing interface for Brasaland.
+Landing corporativa en español y formulario de registro simulado de Brasa Points. El formulario no persiste ni transmite datos personales.
 
-## Current Scope
+## Ejecutar localmente
 
-1. Entry route `/` via `index.html` rendered by modular frontend files.
-2. Reusable UI components in `components.js`.
-3. Business-aligned content in `data.js` based on `CONTEXT.md`.
-4. Visual identity baseline for future migration to a framework if needed.
+Desde la raíz del repositorio, ejecuta:
 
-## Quick Start
+```sh
+npx --yes http-server uis/website -p 3000 -a 0.0.0.0
+```
 
-Open `index.html` in a browser.
+Abre `http://localhost:3000`. En Codespaces, reenvía el puerto 3000 y cambia su visibilidad a **Public** para que la vista previa pueda auditarse externamente. La landing está en `/` y el registro en `/application.html`.
+
+Tailwind se carga con su CDN Play para mantener este entregable estático, sin proceso de build. Para registrar Brasa Points en producción se necesita conectar un backend con consentimiento y tratamiento de datos adecuados.
