@@ -5,6 +5,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { fetchRecordsPage } from "@/services/records";
 import { CandidateRecord } from "@/types/records";
+import {
+  CANDIDATE_STAGES,
+  CANDIDATE_STAGE_LABELS,
+  CANDIDATE_STATUSES,
+  CANDIDATE_STATUS_LABELS,
+} from "@/lib/candidate-labels";
 
 export default function CandidatesTable() {
   const searchParams = useSearchParams();
@@ -71,16 +77,6 @@ export default function CandidatesTable() {
   const selectedStatus = searchParams.get("status") ?? "all";
   const selectedStage = searchParams.get("stage") ?? "all";
   const searchQuery = searchParams.get("q") ?? "";
-
-  const statuses = useMemo(
-    () => Array.from(new Set(candidates.map((candidate) => candidate.status))).sort(),
-    [candidates],
-  );
-
-  const stages = useMemo(
-    () => Array.from(new Set(candidates.map((candidate) => candidate.stage))).sort(),
-    [candidates],
-  );
 
   const filteredCandidates = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -161,9 +157,9 @@ export default function CandidatesTable() {
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
           >
             <option value="all">Todos</option>
-            {statuses.map((status) => (
-              <option key={status} value={status}>
-                {status}
+            {CANDIDATE_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -180,9 +176,9 @@ export default function CandidatesTable() {
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
           >
             <option value="all">Todas</option>
-            {stages.map((stage) => (
-              <option key={stage} value={stage}>
-                {stage}
+            {CANDIDATE_STAGES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -215,8 +211,8 @@ export default function CandidatesTable() {
                     {candidate.full_name}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-700">{candidate.position}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-700">{candidate.status}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-700">{candidate.stage}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-700">{CANDIDATE_STATUS_LABELS[candidate.status]}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-700">{CANDIDATE_STAGE_LABELS[candidate.stage]}</td>
                   <td className="px-4 py-3 text-sm text-zinc-700">
                     <Link
                       href={`/candidates/${candidate.id}`}

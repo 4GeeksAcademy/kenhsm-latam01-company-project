@@ -25,6 +25,10 @@ Replaced the generic public website placeholder in `uis/website` with the Brasal
 
 Added the briefing-aligned data utilities under root `src/` rather than modifying the existing protected `apps/talent-pipeline-tracker` implementation, whose models and functions belong to a different domain. The new modules define menu, sale, location, waste, and country metric types; collection/search operations; financial calculations, performance scoring/ranking, reports, generic aggregators, and business validators. Currency totals remain dual-valued without cross-currency addition. Daily revenue defaults to UTC but accepts an IANA time zone; scoring and current-year validation accept optional dates/years for deterministic runs. Typecheck and focused Node tests pass.
 
+## Hito 3 Talent Pipeline UI Fix (2026-11-10)
+
+Resolved merge-conflict markers in the tracker list/detail routes and centralized the four allowed API statuses and five stages with Spanish display labels. List, detail, update, create, and edit controls now display labels while submitting the exact API values; candidate status/stage fields use matching TypeScript unions. Installed the app's already-declared dependencies so Next.js 16 builds locally. Verification: focused ESLint, TypeScript, production build, and the 5 existing Jest tests pass. `npm install` reported 25 dependency vulnerabilities; no automatic dependency upgrades were applied.
+
 ## Completed
 
 1. Created repository-level agent operating protocol in `AGENTS.md`.

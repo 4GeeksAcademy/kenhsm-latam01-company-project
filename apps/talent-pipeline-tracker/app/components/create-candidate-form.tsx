@@ -2,12 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import { createCandidate } from "@/services/records";
-import { CandidatePayload } from "@/types/records";
+import type { CandidatePayload, CandidateStage, CandidateStatus } from "@/types/records";
+import { CANDIDATE_STAGES, CANDIDATE_STATUSES } from "@/lib/candidate-labels";
 
-const STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
-const STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
+type CandidateFormState = Omit<CandidatePayload, "experience_years"> & { experience_years: string };
 
-const INITIAL_FORM = {
+const INITIAL_FORM: CandidateFormState = {
   full_name: "",
   email: "",
   phone: "",
@@ -20,11 +20,11 @@ const INITIAL_FORM = {
 };
 
 export default function CreateCandidateForm() {
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState<CandidateFormState>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  function updateField(name: keyof typeof form, value: string) {
+  function updateField<Field extends keyof CandidateFormState>(name: Field, value: CandidateFormState[Field]) {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
@@ -104,16 +104,16 @@ export default function CreateCandidateForm() {
           <input id="create-cv" value={form.cv_url} onChange={(e) => updateField("cv_url", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" />
         </Field>
         <Field label="Estado" id="create-status">
-          <select id="create-status" value={form.status} onChange={(e) => updateField("status", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
+          <select id="create-status" value={form.status} onChange={(e) => updateField("status", e.target.value as CandidateStatus)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            {CANDIDATE_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </Field>
         <Field label="Etapa" id="create-stage">
-          <select id="create-stage" value={form.stage} onChange={(e) => updateField("stage", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
-            {STAGE_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
+          <select id="create-stage" value={form.stage} onChange={(e) => updateField("stage", e.target.value as CandidateStage)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            {CANDIDATE_STAGES.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </Field>
