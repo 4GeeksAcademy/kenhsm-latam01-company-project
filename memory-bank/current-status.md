@@ -21,6 +21,10 @@ The standalone `/knowledge/query` endpoint now requires `manager`/`admin`, share
 
 Replaced the generic public website placeholder in `uis/website` with the Brasaland Spanish landing required by `BRIEFING-HITO1.md`, including the prescribed sections, contact/order notice, Restaurant JSON-LD, SEO metadata, responsive Tailwind CDN styling, and a Brasa Points registration link. Added `application.html` and client-only validation for the required fields, age/phone/name rules, dependent country/city/location options, accessible error messages, reset, and simulated success. The form does not persist or transmit personal data. Local `npx http-server` startup is documented; public Codespaces port visibility and Lighthouse/PageSpeed scoring remain environment checks.
 
+## Hito 2 TypeScript Utilities Decision (2026-11-10)
+
+Added the briefing-aligned data utilities under root `src/` rather than modifying the existing protected `apps/talent-pipeline-tracker` implementation, whose models and functions belong to a different domain. The new modules define menu, sale, location, waste, and country metric types; collection/search operations; financial calculations, performance scoring/ranking, reports, generic aggregators, and business validators. Currency totals remain dual-valued without cross-currency addition. Daily revenue defaults to UTC but accepts an IANA time zone; scoring and current-year validation accept optional dates/years for deterministic runs. Typecheck and focused Node tests pass.
+
 ## Completed
 
 1. Created repository-level agent operating protocol in `AGENTS.md`.

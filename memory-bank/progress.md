@@ -33,6 +33,8 @@
 
 26. Completed the Hito 1 Brasaland public landing and Brasa Points registration form in `uis/website`, replacing the generic placeholder. Added responsive Spanish content, Restaurant JSON-LD, SEO metadata, dependent location selects, accessible field validation, simulated success, and root-level `npx http-server` instructions. Browser audit, public Codespaces exposure, and Lighthouse/PageSpeed score are pending runtime verification.
 
+27. Completed Hito 2 TypeScript data utilities in root `src/` per `SPECS-HITO2-REVISION.md` and `BRIEFING-HITO2-REV.md`: domain models, filters/sorts/search, financial calculations, location scoring/ranking, reports/aggregations, and menu/sale/location validation. Added strict isolated TypeScript configuration and focused tests (7 passing); verified no mutation, empty/null handling, currency separation, and UTC/IANA business-date behavior. The existing protected talent-pipeline app was left unchanged.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.

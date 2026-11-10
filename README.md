@@ -45,11 +45,14 @@ ai-engineering-company-project-monorepo/
 │   └── shared/               # Shared package (@repo/shared-types)
 ├── scripts/                  # Script conventions/documentation
 ├── services/                 # APIs and background workers
+├── src/                      # Brasaland Hito 2 TypeScript data utilities
 ├── shared/                   # Shared assets/conventions at repo level
 ├── skills/                   # Reusable agent skills
 ├── uis/                      # User interfaces (React, Next.js, Streamlit, HTML)
 └── workflows/                # Automation/orchestration documentation
 ```
+
+Hito 2 data utilities live in `src/`; see [src/README.md](./src/README.md) for type-check and test commands.
 
 ---
 
