@@ -16,6 +16,11 @@ The standalone `/knowledge/query` endpoint now requires `manager`/`admin`, share
 2026-09-10
 
 2026-09-26
+
+## Hito 1 Public Website Decision (2026-11-10)
+
+Replaced the generic public website placeholder in `uis/website` with the Brasaland Spanish landing required by `BRIEFING-HITO1.md`, including the prescribed sections, contact/order notice, Restaurant JSON-LD, SEO metadata, responsive Tailwind CDN styling, and a Brasa Points registration link. Added `application.html` and client-only validation for the required fields, age/phone/name rules, dependent country/city/location options, accessible error messages, reset, and simulated success. The form does not persist or transmit personal data. Local `npx http-server` startup is documented; public Codespaces port visibility and Lighthouse/PageSpeed scoring remain environment checks.
+
 ## Completed
 
 1. Created repository-level agent operating protocol in `AGENTS.md`.

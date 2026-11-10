@@ -31,6 +31,8 @@
 
 25. **COMPLETADO (Milestone 5 Backoffice):** Implemented inventory management frontend with static HTML/JS backoffice. Created 4-section page (products listing, inbound form, outbound form, order history), centralized API module (`lib/inventory.js`), JWT auth in localStorage, real-time stock validation with color-coded indicators (red/yellow/green), and user-friendly error handling. All navigation, forms, alerts, and responsive design integrated with existing backoffice patterns. Ready for manual testing.n Supabase PostgreSQL, separated ORM models from Pydantic schemas, implemented 6 endpoints under `/inventory` (products GET/POST, GET by ID, orders inbound/outbound/list), enforced immutable stock calculation (`current_stock = entries - exits`), added HTTP 400 validation to reject negative-stock transactions before persistence, integrated TinyDB user UUIDs without table replication, created comprehensive inventory module README, seeded 6 ingredients with 4 entry/3 exit transactions, and verified app startup with SQLModel registration. Tests with actual Supabase connection remain pending DATABASE_URL configuration. Ready for staging.
 
+26. Completed the Hito 1 Brasaland public landing and Brasa Points registration form in `uis/website`, replacing the generic placeholder. Added responsive Spanish content, Restaurant JSON-LD, SEO metadata, dependent location selects, accessible field validation, simulated success, and root-level `npx http-server` instructions. Browser audit, public Codespaces exposure, and Lighthouse/PageSpeed score are pending runtime verification.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.

@@ -2,7 +2,8 @@
   "name": "brasaland-website-static",
   "private": true,
   "scripts": {
-    "dev": "PORT=3000 STATIC_DIR=website node ../dev-server.js"
+    "dev": "PORT=3000 STATIC_DIR=website node ../dev-server.js",
+    "test": "node --test validation.test.js"
   },
   "dependencies": {}
 }

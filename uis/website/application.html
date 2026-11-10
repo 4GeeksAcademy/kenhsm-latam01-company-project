@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Regístrate en Brasa Points, el programa digital de fidelización de Brasaland." />
+  <meta name="theme-color" content="#f6f1e8" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ember: "#a83419",
+            charcoal: "#242520",
+            leaf: "#4e6747",
+            linen: "#f6f1e8",
+            oat: "#e8dfd0"
+          },
+          fontFamily: {
+            sans: ["DM Sans", "sans-serif"],
+            display: ["Fraunces", "Georgia", "serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <script src="./validation.js" defer></script>
+  <title>Únete a Brasa Points | Brasaland</title>
+</head>
+<body class="min-h-screen bg-linen font-sans text-charcoal antialiased">
+  <a class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:px-4 focus:py-3 focus:text-charcoal" href="#registro">Saltar al formulario</a>
+  <header class="border-b border-charcoal/10">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-5 px-5 py-5 sm:px-8">
+      <a class="flex items-center gap-3 text-charcoal no-underline" href="index.html" aria-label="Brasaland, volver al inicio">
+        <span class="grid h-10 w-10 place-items-center rounded-full bg-ember font-display text-xl text-white" aria-hidden="true">B</span>
+        <span class="font-display text-2xl font-semibold">Brasaland</span>
+      </a>
+      <a class="font-semibold text-charcoal underline decoration-ember underline-offset-4 hover:text-ember" href="index.html">Volver al inicio</a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
+    <div class="max-w-3xl">
+      <p class="text-xs font-bold uppercase tracking-[0.18em] text-leaf">Brasa Points · Registro digital</p>
+      <h1 class="mt-3 font-display text-4xl font-semibold leading-tight sm:text-5xl">Una visita más cerca de tu próximo beneficio</h1>
+      <p class="mt-5 max-w-2xl text-lg leading-8 text-charcoal/75">Regístrate para acumular puntos y recibir beneficios en Brasaland. Programa para mayores de 18 años.</p>
+    </div>
+
+    <form id="registration-form" class="mt-10 space-y-8 border-t border-charcoal/15 pt-8" novalidate>
+      <fieldset class="grid gap-6 sm:grid-cols-2">
+        <legend class="mb-5 font-display text-2xl font-semibold">Tus datos</legend>
+        <div>
+          <label class="block text-sm font-bold" for="full-name">Nombre completo <span aria-hidden="true" class="text-ember">*</span></label>
+          <input class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="full-name" name="fullName" type="text" autocomplete="name" required aria-describedby="full-name-error" />
+          <p class="mt-1 text-sm text-ember" id="full-name-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="email">Email <span aria-hidden="true" class="text-ember">*</span></label>
+          <input class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="email" name="email" type="email" autocomplete="email" inputmode="email" required aria-describedby="email-error" />
+          <p class="mt-1 text-sm text-ember" id="email-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="phone">Teléfono <span aria-hidden="true" class="text-ember">*</span></label>
+          <input class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+57 300 123 4567" required aria-describedby="phone-hint phone-error" />
+          <p class="mt-1 text-sm text-charcoal/65" id="phone-hint">Incluye el código de país correspondiente a tu país de registro.</p>
+          <p class="mt-1 text-sm text-ember" id="phone-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="country">País <span aria-hidden="true" class="text-ember">*</span></label>
+          <select class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="country" name="country" required aria-describedby="country-error">
+            <option value="">Selecciona tu país</option>
+            <option value="CO">Colombia</option>
+            <option value="US">Estados Unidos</option>
+          </select>
+          <p class="mt-1 text-sm text-ember" id="country-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="city">Ciudad <span aria-hidden="true" class="text-ember">*</span></label>
+          <select class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="city" name="city" required disabled aria-describedby="city-error">
+            <option value="">Primero selecciona tu país</option>
+          </select>
+          <p class="mt-1 text-sm text-ember" id="city-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="favorite-location">Ubicación favorita de Brasaland <span class="font-normal text-charcoal/60">(opcional)</span></label>
+          <select class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="favorite-location" name="favoriteLocation" disabled aria-describedby="favorite-location-hint">
+            <option value="">Selecciona ciudad para ver ubicaciones</option>
+          </select>
+          <p class="mt-1 text-sm text-charcoal/65" id="favorite-location-hint">Las opciones dependen del país y la ciudad seleccionados.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="discovery">¿Cómo nos conociste? <span aria-hidden="true" class="text-ember">*</span></label>
+          <select class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="discovery" name="discovery" required aria-describedby="discovery-error">
+            <option value="">Selecciona una opción</option>
+            <option value="social">Redes sociales</option>
+            <option value="recommendation">Recomendación</option>
+            <option value="walk-by">Pasando por el local</option>
+            <option value="search">Búsqueda en internet</option>
+            <option value="other">Otro</option>
+          </select>
+          <p class="mt-1 text-sm text-ember" id="discovery-error" aria-live="polite"></p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold" for="birth-date">Fecha de nacimiento <span aria-hidden="true" class="text-ember">*</span></label>
+          <input class="mt-2 min-h-12 w-full border border-charcoal/30 bg-white px-3 focus:border-leaf focus:outline-2 focus:outline-leaf" id="birth-date" name="birthDate" type="date" autocomplete="bday" required aria-describedby="birth-date-error" />
+          <p class="mt-1 text-sm text-ember" id="birth-date-error" aria-live="polite"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="font-display text-2xl font-semibold">Preferencias alimentarias <span class="font-sans text-base font-normal text-charcoal/60">(opcional)</span></legend>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="flex min-h-12 items-center gap-3"><input class="h-5 w-5 accent-leaf" type="checkbox" name="dietaryPreferences" value="none" />Sin restricciones</label>
+          <label class="flex min-h-12 items-center gap-3"><input class="h-5 w-5 accent-leaf" type="checkbox" name="dietaryPreferences" value="vegetarian" />Vegetariano</label>
+          <label class="flex min-h-12 items-center gap-3"><input class="h-5 w-5 accent-leaf" type="checkbox" name="dietaryPreferences" value="gluten-free" />Sin gluten</label>
+          <label class="flex min-h-12 items-center gap-3"><input class="h-5 w-5 accent-leaf" type="checkbox" name="dietaryPreferences" value="other" />Otro</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-4 border-t border-charcoal/15 pt-6">
+        <legend class="font-display text-2xl font-semibold">Permisos</legend>
+        <div>
+          <label class="flex items-start gap-3 leading-6" for="terms">
+            <input class="mt-1 h-5 w-5 shrink-0 accent-leaf" id="terms" name="terms" type="checkbox" required aria-describedby="terms-error" />
+            <span>Acepto los términos del programa Brasa Points <span aria-hidden="true" class="text-ember">*</span></span>
+          </label>
+          <p class="mt-1 text-sm text-ember" id="terms-error" aria-live="polite"></p>
+        </div>
+        <label class="flex items-start gap-3 leading-6" for="email-offers">
+          <input class="mt-1 h-5 w-5 shrink-0 accent-leaf" id="email-offers" name="emailOffers" type="checkbox" />
+          <span>Quiero recibir ofertas por email <span class="text-charcoal/60">(opcional)</span></span>
+        </label>
+      </fieldset>
+
+      <div class="flex flex-col gap-3 border-t border-charcoal/15 pt-6 sm:flex-row">
+        <button class="min-h-12 bg-ember px-6 py-3 font-bold text-white hover:bg-charcoal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-charcoal" type="submit">Crear mi registro</button>
+        <button class="min-h-12 border border-charcoal px-6 py-3 font-bold hover:bg-charcoal hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-charcoal" type="reset">Limpiar formulario</button>
+      </div>
+      <p id="form-error-summary" class="text-sm font-semibold text-ember" role="alert" tabindex="-1"></p>
+      <section id="registration-success" class="hidden border-l-4 border-leaf bg-white px-5 py-5" aria-labelledby="success-title" role="status" tabindex="-1">
+        <h2 id="success-title" class="font-display text-2xl font-semibold">¡Bienvenido a Brasa Points!</h2>
+        <p class="mt-2 leading-7">Tu registro ha sido exitoso. Recibirás un email de confirmación en los próximos minutos con los detalles de tu cuenta y cómo empezar a acumular puntos.</p>
+        <p class="mt-2 leading-7">¡Ya puedes disfrutar de tus beneficios en cualquiera de nuestras 14 ubicaciones!</p>
+      </section>
+    </form>
+  </main>
+
+  <footer class="border-t border-charcoal/10">
+    <div class="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-6 text-sm sm:px-8 md:flex-row md:justify-between">
+      <p>© 2025 Brasaland. Todos los derechos reservados.</p>
+      <a class="font-semibold underline underline-offset-4 hover:text-ember" href="index.html#contacto">Contacto</a>
+    </div>
+  </footer>
+</body>
+</html>
