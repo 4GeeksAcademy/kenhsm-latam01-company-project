@@ -35,6 +35,8 @@
 
 27. Completed Hito 2 TypeScript data utilities in root `src/` per `SPECS-HITO2-REVISION.md` and `BRIEFING-HITO2-REV.md`: domain models, filters/sorts/search, financial calculations, location scoring/ranking, reports/aggregations, and menu/sale/location validation. Added strict isolated TypeScript configuration and focused tests (7 passing); verified no mutation, empty/null handling, currency separation, and UTC/IANA business-date behavior. The existing protected talent-pipeline app was left unchanged.
 
+28. Fixed Hito 3 Talent Pipeline Tracker UI: removed merge-conflict markers, aligned status/stage enums with the Brasaland briefing, and localized all user-visible status/stage labels across list, detail, create, edit, and update controls. Installed declared app dependencies. ESLint, TypeScript, Next.js production build, and all 5 existing Jest tests pass. Dependency audit during installation reported 25 vulnerabilities; dependency upgrades remain a separate task.
+
 ## Proximos pasos previstos
 
 1. Crear el primer servicio backend en `services/` (por ejemplo, `admin-api/` o `telemetry-worker/`). — done via `services/brasaland-api`.

@@ -1,29 +1,11 @@
 import Link from "next/link";
-<<<<<<< HEAD
-import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { fetchCandidateById } from "@/services/records";
 import { CandidateRecordDetail } from "@/types/records";
-
-const CandidateEditForm = dynamic(() => import("./candidate-edit-form"), {
-  loading: () => <DetailLoading label="Preparando edición..." />,
-});
-const CandidateUpdateControls = dynamic(() => import("./candidate-update-controls"), {
-  loading: () => <DetailLoading label="Preparando controles..." />,
-});
-const CandidateNotesSection = dynamic(() => import("./candidate-notes-section"), {
-  loading: () => <DetailLoading label="Preparando notas..." />,
-});
-
-=======
-import { notFound } from "next/navigation";
 import CandidateEditForm from "./candidate-edit-form";
 import CandidateUpdateControls from "./candidate-update-controls";
 import CandidateNotesSection from "./candidate-notes-section";
-import { fetchCandidateById } from "@/services/records";
-import { CandidateRecordDetail } from "@/types/records";
-
->>>>>>> origin/main
+import { CANDIDATE_STAGE_LABELS, CANDIDATE_STATUS_LABELS } from "@/lib/candidate-labels";
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     dateStyle: "medium",
@@ -124,8 +106,8 @@ export default async function CandidateDetailPage({
           <DetailItem label="LinkedIn" value={candidate.linkedin_url} isLink />
           <DetailItem label="Enlace al CV" value={candidate.cv_url} isLink />
           <DetailItem label="Anios de experiencia" value={`${candidate.experience_years} anios`} />
-          <DetailItem label="Estado" value={candidate.status} />
-          <DetailItem label="Etapa" value={candidate.stage} />
+          <DetailItem label="Estado" value={CANDIDATE_STATUS_LABELS[candidate.status]} />
+          <DetailItem label="Etapa" value={CANDIDATE_STAGE_LABELS[candidate.stage]} />
           <DetailItem label="Fecha de postulacion" value={formatDate(candidate.applied_at)} />
         </div>
       </section>
@@ -160,14 +142,3 @@ function DetailItem({
     </div>
   );
 }
-<<<<<<< HEAD
-
-function DetailLoading({ label }: { label: string }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <p className="text-sm text-zinc-600">{label}</p>
-    </div>
-  );
-}
-=======
->>>>>>> origin/main

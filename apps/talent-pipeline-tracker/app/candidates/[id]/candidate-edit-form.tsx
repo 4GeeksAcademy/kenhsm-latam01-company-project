@@ -3,7 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateCandidate } from "@/services/records";
-import { CandidatePayload } from "@/types/records";
+import type { CandidatePayload, CandidateStage, CandidateStatus } from "@/types/records";
+import { CANDIDATE_STAGES, CANDIDATE_STATUSES } from "@/lib/candidate-labels";
 
 type CandidateEditFormProps = {
   recordId: string;
@@ -14,14 +15,11 @@ type CandidateEditFormProps = {
     position: string;
     linkedin_url: string;
     cv_url: string;
-    status: string;
-    stage: string;
+    status: CandidateStatus;
+    stage: CandidateStage;
     experience_years: number;
   };
 };
-
-const STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
-const STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
 
 export default function CandidateEditForm({ recordId, initialValues }: CandidateEditFormProps) {
   const router = useRouter();
@@ -32,7 +30,7 @@ export default function CandidateEditForm({ recordId, initialValues }: Candidate
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  function updateField(name: keyof typeof form, value: string) {
+  function updateField<Field extends keyof typeof form>(name: Field, value: (typeof form)[Field]) {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
@@ -111,16 +109,16 @@ export default function CandidateEditForm({ recordId, initialValues }: Candidate
           <input id="edit-cv" value={form.cv_url} onChange={(e) => updateField("cv_url", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" />
         </Field>
         <Field label="Estado" id="edit-status">
-          <select id="edit-status" value={form.status} onChange={(e) => updateField("status", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
+          <select id="edit-status" value={form.status} onChange={(e) => updateField("status", e.target.value as CandidateStatus)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            {CANDIDATE_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </Field>
         <Field label="Etapa" id="edit-stage">
-          <select id="edit-stage" value={form.stage} onChange={(e) => updateField("stage", e.target.value)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
-            {STAGE_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
+          <select id="edit-stage" value={form.stage} onChange={(e) => updateField("stage", e.target.value as CandidateStage)} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            {CANDIDATE_STAGES.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </Field>

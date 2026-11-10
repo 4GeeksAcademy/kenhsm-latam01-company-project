@@ -1,10 +1,19 @@
+export type CandidateStatus = "received" | "in_progress" | "selected" | "discarded";
+
+export type CandidateStage =
+  | "pending"
+  | "review"
+  | "personal_interview"
+  | "technical_interview"
+  | "offer_presented";
+
 export type CandidateRecord = {
   id: string;
   full_name: string;
   email: string;
   position: string;
-  status: string;
-  stage: string;
+  status: CandidateStatus;
+  stage: CandidateStage;
 };
 
 export type CandidateRecordDetail = {
@@ -15,8 +24,8 @@ export type CandidateRecordDetail = {
   position: string;
   linkedin_url: string;
   cv_url: string;
-  status: string;
-  stage: string;
+  status: CandidateStatus;
+  stage: CandidateStage;
   experience_years: number;
   notes_count: number;
   applied_at: string;
@@ -37,12 +46,12 @@ export type CandidatePayload = {
   position: string;
   linkedin_url: string;
   cv_url: string;
-  status: string;
-  stage: string;
+  status: CandidateStatus;
+  stage: CandidateStage;
   experience_years: number;
 };
 
 export type PatchResponse = {
-  status: string;
-  stage: string;
+  status: CandidateStatus;
+  stage: CandidateStage;
 };

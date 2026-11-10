@@ -1,17 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { patchCandidate } from "@/services/records";
+import type { CandidateStage, CandidateStatus } from "@/types/records";
+import { CANDIDATE_STAGES, CANDIDATE_STATUSES } from "@/lib/candidate-labels";
 
 type CandidateUpdateControlsProps = {
   recordId: string;
-  initialStatus: string;
-  initialStage: string;
+  initialStatus: CandidateStatus;
+  initialStage: CandidateStage;
 };
-
-const DEFAULT_STATUS_OPTIONS = ["received", "in_progress", "selected", "rejected"];
-const DEFAULT_STAGE_OPTIONS = ["pending", "review", "interview", "offer", "hired", "rejected"];
 
 export default function CandidateUpdateControls({
   recordId,
@@ -19,23 +18,13 @@ export default function CandidateUpdateControls({
   initialStage,
 }: CandidateUpdateControlsProps) {
   const router = useRouter();
-  const [status, setStatus] = useState(initialStatus);
-  const [stage, setStage] = useState(initialStage);
+  const [status, setStatus] = useState<CandidateStatus>(initialStatus);
+  const [stage, setStage] = useState<CandidateStage>(initialStage);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isSavingStage, setIsSavingStage] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const statusOptions = useMemo(() => {
-    const options = new Set([...DEFAULT_STATUS_OPTIONS, initialStatus, status]);
-    return Array.from(options);
-  }, [initialStatus, status]);
-
-  const stageOptions = useMemo(() => {
-    const options = new Set([...DEFAULT_STAGE_OPTIONS, initialStage, stage]);
-    return Array.from(options);
-  }, [initialStage, stage]);
-
-  async function handleUpdateStatus(nextStatus: string) {
+  async function handleUpdateStatus(nextStatus: CandidateStatus) {
     setStatus(nextStatus);
     setIsSavingStatus(true);
     setFeedback(null);
@@ -53,7 +42,7 @@ export default function CandidateUpdateControls({
     }
   }
 
-  async function handleUpdateStage(nextStage: string) {
+  async function handleUpdateStage(nextStage: CandidateStage) {
     setStage(nextStage);
     setIsSavingStage(true);
     setFeedback(null);
@@ -83,13 +72,13 @@ export default function CandidateUpdateControls({
           <select
             id="status-update"
             value={status}
-            onChange={(event) => handleUpdateStatus(event.target.value)}
+            onChange={(event) => handleUpdateStatus(event.target.value as CandidateStatus)}
             disabled={isSavingStatus}
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {statusOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {CANDIDATE_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -102,13 +91,13 @@ export default function CandidateUpdateControls({
           <select
             id="stage-update"
             value={stage}
-            onChange={(event) => handleUpdateStage(event.target.value)}
+            onChange={(event) => handleUpdateStage(event.target.value as CandidateStage)}
             disabled={isSavingStage}
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {stageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {CANDIDATE_STAGES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
